@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><project name="PROCOM" company="" webLink="http://" view-date="2025-10-06" view-index="0" gantt-divider-location="413" resource-divider-location="300" version="3.3.3311" locale="fr_FR">
+    <description><![CDATA[Pilotage Plateforme Mobile]]></description>
+    <view zooming-state="default:4" id="gantt-chart">
+        <field id="tpd15" name="Notes" width="20" order="-1"/>
+        <field id="tpd3" name="Nom" width="235" order="0"/>
+        <field id="tpd4" name="Date de début" width="88" order="1"/>
+        <field id="tpd5" name="Date de fin" width="89" order="2"/>
+        <option id="filter.completedTasks" value="false"/>
+        <option id="filter.dueTodayTasks" value="false"/>
+        <option id="filter.overdueTasks" value="false"/>
+        <option id="filter.inProgressTodayTasks" value="false"/>
+        <option id="color.recent"><![CDATA[#009900 #ffcc33 #ffffcc #cc0000 #0000cc #009999]]></option>
+    </view>
+    <view id="resource-table">
+        <field id="0" name="Nom" width="210" order="0"/>
+        <field id="1" name="Rôle par défaut" width="86" order="1"/>
+    </view>
+    <!-- -->
+    <calendars>
+        <day-types>
+            <day-type id="0"/>
+            <day-type id="1"/>
+            <default-week id="1" name="default" sun="1" mon="0" tue="0" wed="0" thu="0" fri="0" sat="1"/>
+            <only-show-weekends value="false"/>
+            <overriden-day-types/>
+            <days/>
+        </day-types>
+    </calendars>
+    <tasks empty-milestones="true">
+        <taskproperties>
+            <taskproperty id="tpd0" name="type" type="default" valuetype="icon"/>
+            <taskproperty id="tpd1" name="priority" type="default" valuetype="icon"/>
+            <taskproperty id="tpd2" name="info" type="default" valuetype="icon"/>
+            <taskproperty id="tpd3" name="name" type="default" valuetype="text"/>
+            <taskproperty id="tpd4" name="begindate" type="default" valuetype="date"/>
+            <taskproperty id="tpd5" name="enddate" type="default" valuetype="date"/>
+            <taskproperty id="tpd6" name="duration" type="default" valuetype="int"/>
+            <taskproperty id="tpd7" name="completion" type="default" valuetype="int"/>
+            <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
+            <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
+        </taskproperties>
+        <task id="3" uid="8e3641add0d14dd79dff1007ce5aa43a" name="Gestion de Projet" color="#ffcc33" meeting="false" start="2025-10-13" duration="104" complete="0" expand="true">
+            <task id="5" uid="51dad120e425466e9e8c58fbc581c3ab" name="Cahier des Charges" meeting="false" start="2025-10-13" duration="7" complete="0" expand="true"/>
+            <task id="9" uid="e966ac30cd0d489f830e5d97c17b07ce" name="Preparation Revue de Projet" meeting="false" start="2025-11-06" duration="14" complete="0" expand="true">
+                <depend id="8" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="8" uid="de38c3365e1e43b58987c541f4b38588" name="Revue de Projet" meeting="true" start="2025-11-26" duration="0" complete="0" expand="true"/>
+            <task id="7" uid="238f08e8eb85473595bc41eecc914e9d" name="Preparation Soutenance" meeting="false" start="2026-01-05" duration="14" complete="0" expand="true">
+                <depend id="10" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="10" uid="ef6d3137ba5b4522877c2cec38f20f8b" name="Soutenance" meeting="true" start="2026-01-23" duration="0" complete="0" expand="true"/>
+            <task id="11" uid="9edf7e51801f467895053ed1c0c35639" name="Ecriture Rapport Final" meeting="false" start="2026-02-16" duration="14" complete="0" expand="true">
+                <depend id="6" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="6" uid="4b51443ce5d24d83bcf96ef67668f313" name="Rapport Final" meeting="true" start="2026-03-06" duration="0" complete="0" expand="true"/>
+        </task>
+        <task id="0" uid="194af2012d424b39b67c2f5089ad2da7" name="IHM" color="#009900" meeting="false" start="2025-10-13" duration="9" complete="0" expand="true">
+            <task id="12" uid="926ba98186ba4042a229b80dc7cdde01" name="Connecter la carte au Wi-Fi" color="#009900" meeting="false" start="2025-10-13" duration="1" complete="0" expand="true">
+                <depend id="13" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="13" uid="e1e9bd46e0b04d93912bac17f40213b5" name="Créer un serveur sur la carte" color="#009900" meeting="false" start="2025-10-14" duration="1" complete="0" expand="true">
+                <depend id="14" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="14" uid="eaac7fd552e84dcaa1d6211ccca7851a" name="Connecter la carte et l'ordinateur + communication" color="#009900" meeting="false" start="2025-10-15" duration="1" complete="0" expand="true">
+                <depend id="15" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="15" uid="5b3b161d3de44ee6bf917a6b8285e27f" name="Page Web" color="#009900" meeting="false" start="2025-10-16" duration="1" complete="0" expand="true">
+                <depend id="16" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="16" uid="0df00c6db7844b8b834b81d9eb0d026c" name="Application Python" color="#009900" meeting="false" start="2025-10-17" duration="1" complete="0" expand="true">
+                <depend id="17" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="17" uid="6319e71d2b884d6aae7b759bb8c436aa" name="Receptionner les données de la carte" color="#009900" meeting="false" start="2025-10-20" duration="1" complete="0" expand="true">
+                <depend id="18" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="18" uid="6b969cfac05547e4a055157a33e0e2fa" name="Analyse ecran OLED" color="#009900" meeting="false" start="2025-10-21" duration="1" complete="0" expand="true">
+                <depend id="19" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="19" uid="c364750156de435cb9051fe11facc340" name="Librairie controle LED" color="#009900" meeting="false" start="2025-10-22" duration="1" complete="0" expand="true">
+                <depend id="20" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="20" uid="89cd073938a546978131ed09607ab4fb" name="Librairie Controle serveur" color="#009900" meeting="false" start="2025-10-23" duration="1" complete="0" expand="true">
+                <depend id="35" type="2" difference="0" hardness="Strong"/>
+            </task>
+        </task>
+        <task id="1" uid="d03186bcf06349d0b7c2bfd3b57180f6" name="Traitement d'image" color="#009999" meeting="false" start="2025-10-13" duration="5" complete="0" expand="true">
+            <task id="21" uid="eba2279b373b4787ba1948946ee9c295" name="Detection d'une ligne en python" meeting="false" start="2025-10-13" duration="1" complete="0" expand="true">
+                <depend id="22" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="22" uid="c819e79c80514d4195be0a719e30433e" name="Obtenir rayon de courbure" meeting="false" start="2025-10-14" duration="1" complete="0" expand="true">
+                <depend id="23" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="23" uid="b5d5a344aa614810a4a74cb6539a77d5" name="Recalibrage de l'image" meeting="false" start="2025-10-15" duration="1" complete="0" expand="true">
+                <depend id="24" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="24" uid="bf7055b0f4f943bcaef3ab0241db3a52" name="Acquisition de l'image" meeting="false" start="2025-10-16" duration="1" complete="0" expand="true">
+                <depend id="25" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="25" uid="474b805bd3ba447cbc81c0550781d3da" name="Traduction en C" meeting="false" start="2025-10-17" duration="1" complete="0" expand="true">
+                <depend id="35" type="2" difference="0" hardness="Strong"/>
+            </task>
+        </task>
+        <task id="2" uid="4b15edc5e11b4076b2240e1cea1212b5" name="Controle" color="#0000cc" meeting="false" start="2025-10-13" duration="7" complete="0" expand="true">
+            <task id="26" uid="7831edcc7f064d4eac0a66791628d43b" name="Controler sens et vitesse" meeting="false" start="2025-10-13" duration="1" complete="0" expand="true">
+                <depend id="27" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="27" uid="18ff32c3a8974b66abbbffb8b64762a2" name="Lecture sortie capteur" meeting="false" start="2025-10-14" duration="1" complete="0" expand="true">
+                <depend id="28" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="28" uid="8066f80db0034314b981d09a33064682" name="Calcul vitesse du moteur" meeting="false" start="2025-10-15" duration="1" complete="0" expand="true">
+                <depend id="29" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="29" uid="39791f28657f40f681acf68e17242fe8" name="Verification moteur" meeting="false" start="2025-10-16" duration="1" complete="0" expand="true">
+                <depend id="30" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="30" uid="30d0d051df5a47f6bbd3275009001ab5" name="Asservissement de la vitesse" meeting="false" start="2025-10-17" duration="1" complete="0" expand="true">
+                <depend id="31" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="31" uid="fc9cf76870a14b86a27bd18a1c82ed2a" name="Assurer la rotation de la plateforme" meeting="false" start="2025-10-20" duration="1" complete="0" expand="true">
+                <depend id="32" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="32" uid="d095495ae94946c0b767cec023487dc7" name="Bibliotheque pour le mouvement" meeting="false" start="2025-10-21" duration="1" complete="0" expand="true">
+                <depend id="35" type="2" difference="0" hardness="Strong"/>
+            </task>
+        </task>
+        <task id="4" uid="da8c3fc6c62b4c22b7b9d2c589fab568" name="Implementation" color="#cc0000" meeting="false" start="2025-10-13" duration="10" complete="0" expand="true">
+            <task id="33" uid="f6845f934f3249c099fe03f55d27849e" name="Preparation de l'environnement" meeting="false" start="2025-10-13" duration="1" complete="0" expand="true"/>
+            <task id="34" uid="16066ee2c6d241d599e977a7c95c5d8f" name="Tester le multithreading" meeting="false" start="2025-10-13" duration="1" complete="0" expand="true"/>
+            <task id="35" uid="ce201d4602dd4e6e8253f26eafc3f6b2" name="Redaction main.c" meeting="false" start="2025-10-24" duration="1" complete="0" expand="true"/>
+        </task>
+    </tasks>
+    <resources/>
+    <allocations/>
+    <vacations/>
+    <previous/>
+    <roles roleset-name="Default"/>
+</project>
