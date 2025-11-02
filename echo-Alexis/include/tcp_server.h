@@ -21,6 +21,7 @@
 #define DEBUG_printf printf
 #define BUF_SIZE 512
 
+extern char *IP4ADDR;
 
 typedef struct TCP_SERVER_T_ {
     struct tcp_pcb *server_pcb;

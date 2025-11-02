@@ -39,7 +39,9 @@ add_executable(echo
         echo.c 
         src/led.c 
         src/tcp_server.c
-        src/wifi_connect.c)
+        src/wifi_connect.c
+        src/i2cSend.c
+        src/digitRenderer.c)
 
 pico_set_program_name(echo "echo")
 pico_set_program_version(echo "0.1")
