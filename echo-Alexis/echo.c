@@ -12,8 +12,8 @@
 #include "include/i2cSend.h"
 #include "include/digitRenderer.h"
 
-#define I2C_SDA 0
-#define I2C_SCL 1
+#define I2C_SDA 8
+#define I2C_SCL 9
 
 int main() {
     stdio_init_all();
