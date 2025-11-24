@@ -35,7 +35,13 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(IHM_C IHM_C.c )
+add_executable(IHM_C 
+            IHM_C.c 
+            lib/wifi/src/tcp_server.c
+        lib/wifi/src/wifi_connect.c
+        lib/oled/src/i2cSend.c
+        lib/oled/src/digitRenderer.c
+        lib/led/src/led.c )
 
 pico_set_program_name(IHM_C "IHM_C")
 pico_set_program_version(IHM_C "0.1")
@@ -59,7 +65,10 @@ target_include_directories(IHM_C PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(IHM_C 
-        
+        pico_cyw43_arch_lwip_threadsafe_background 
+        pico_stdlib
+        pico_cyw43_arch
+        hardware_i2c
         )
 
 pico_add_extra_outputs(IHM_C)

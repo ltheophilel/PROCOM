@@ -5,12 +5,12 @@
  */
 #include "hardware/i2c.h"
 
-#include "include/tcp_server.h"
-#include "include/led.h"
-#include "include/wifi_login.h"
-#include "include/wifi_connect.h"
-#include "include/i2cSend.h"
-#include "include/digitRenderer.h"
+#include "lib/wifi/include/tcp_server.h"
+#include "lib/led/include/led.h"
+#include "wifi_login.h"
+#include "lib/wifi/include/wifi_connect.h"
+#include "lib/oled/include/i2cSend.h"
+#include "lib/oled/include/digitRenderer.h"
 
 #define I2C_SDA 8
 #define I2C_SCL 9
