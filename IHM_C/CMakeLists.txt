@@ -28,53 +28,39 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(echo C CXX ASM)
+project(IHM_C C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-# add_subdirectory(lib)
+add_executable(IHM_C IHM_C.c )
 
-add_executable(echo 
-        echo.c 
-        lib/wifi/src/tcp_server.c
-        lib/wifi/src/wifi_connect.c
-        lib/oled/src/i2cSend.c
-        lib/oled/src/digitRenderer.c
-        lib/led/src/led.c 
-        )
-
-
-
-# add_library 
-# target_sources 
-
-pico_set_program_name(echo "echo")
-pico_set_program_version(echo "0.1")
+pico_set_program_name(IHM_C "IHM_C")
+pico_set_program_version(IHM_C "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(echo 0)
-pico_enable_stdio_usb(echo 1)
+pico_enable_stdio_uart(IHM_C 0)
+pico_enable_stdio_usb(IHM_C 1)
 
 # Add the standard library to the build
-target_link_libraries(echo
+target_link_libraries(IHM_C
         pico_stdlib)
 
+if (PICO_CYW43_SUPPORTED)
+    target_link_libraries(IHM_C pico_cyw43_arch_none)
+endif()
+
 # Add the standard include files to the build
-target_include_directories(echo PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
+target_include_directories(IHM_C PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
-target_link_libraries(echo 
-        pico_cyw43_arch_lwip_threadsafe_background 
-        pico_stdlib
-        pico_cyw43_arch
-        hardware_i2c
+target_link_libraries(IHM_C 
+        
         )
 
-
-pico_add_extra_outputs(echo)
+pico_add_extra_outputs(IHM_C)
 
