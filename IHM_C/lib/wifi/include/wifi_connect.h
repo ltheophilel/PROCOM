@@ -8,8 +8,7 @@
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
 
-#include "lib/wifi/include/wifi_login.h"
-#include "lib/led/include/led.h"
+#include "../include/wifi_login.h"
 
 
 // void start_wifi_scan(void);

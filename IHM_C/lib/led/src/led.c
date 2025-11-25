@@ -1,7 +1,7 @@
 /* led.c - simple LED management for Pico / Pico W
  */
 
-#include "lib/led/include/led.h"
+#include "../include/led.h"
 
 // Variable globale pour stocker l'état de la LED
 static bool led_state = false; // false = éteinte, true = allumée

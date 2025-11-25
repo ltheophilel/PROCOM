@@ -10,8 +10,8 @@
 */
 
 #include<stdio.h>
-#include "lib/oled/include/digitRenderer.h"
-#include "lib/oled/include/i2cSend.h"
+#include "../include/digitRenderer.h"
+#include "../include/i2cSend.h"
 
 #define NUM_DIGITS 10
 #define NUM_IP 12

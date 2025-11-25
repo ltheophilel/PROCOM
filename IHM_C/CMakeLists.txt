@@ -33,15 +33,17 @@ project(IHM_C C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+add_subdirectory(lib/led)
+add_subdirectory(lib/oled)
+add_subdirectory(lib/wifi)
+
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(IHM_C 
             IHM_C.c 
             lib/wifi/src/tcp_server.c
         lib/wifi/src/wifi_connect.c
-        lib/oled/src/i2cSend.c
-        lib/oled/src/digitRenderer.c
-        lib/led/src/led.c )
+        )
 
 pico_set_program_name(IHM_C "IHM_C")
 pico_set_program_version(IHM_C "0.1")
@@ -50,9 +52,9 @@ pico_set_program_version(IHM_C "0.1")
 pico_enable_stdio_uart(IHM_C 0)
 pico_enable_stdio_usb(IHM_C 1)
 
-# Add the standard library to the build
-target_link_libraries(IHM_C
-        pico_stdlib)
+# # Add the standard library to the build
+# target_link_libraries(IHM_C
+#         pico_stdlib)
 
 if (PICO_CYW43_SUPPORTED)
     target_link_libraries(IHM_C pico_cyw43_arch_none)
@@ -65,10 +67,9 @@ target_include_directories(IHM_C PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(IHM_C 
-        pico_cyw43_arch_lwip_threadsafe_background 
-        pico_stdlib
-        pico_cyw43_arch
-        hardware_i2c
+        led_lib
+        oled_lib
+        wifi_lib
         )
 
 pico_add_extra_outputs(IHM_C)

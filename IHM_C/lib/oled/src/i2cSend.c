@@ -3,7 +3,7 @@
 * the SSD1306 128x64 OLED Display module.
 */
 #include "hardware/i2c.h"
-#include "lib/oled/include/i2cSend.h"
+#include "../include/i2cSend.h"
 
 #include<stdio.h>
 #include<stdlib.h>

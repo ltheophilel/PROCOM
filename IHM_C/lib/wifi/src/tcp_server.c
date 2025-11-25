@@ -1,6 +1,6 @@
 
 
-#include "lib/wifi/include/tcp_server.h"
+#include "../include/tcp_server.h"
 #define TEST_ITERATIONS 10
 #define POLL_TIME_S 5
 

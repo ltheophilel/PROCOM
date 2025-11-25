@@ -3,7 +3,6 @@
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
 #include "pico/stdio_usb.h"
-// #include "lib/led/include/led.h"
 #include "lib/lib.h"
 
 // Pico W devices use a GPIO on the WIFI chip for the LED,
@@ -16,6 +15,19 @@
 #define LINE_BUF_SIZE 128
 
 
+
+char* make_readable(char* line) {
+    // Trim left
+    char *s = line;
+    while (*s && (*s == ' ' || *s == '\t')) s++;
+    // Trim right
+    char *end = s + strlen(s) - 1;
+    while (end >= s && (*end == ' ' || *end == '\t')) {
+        *end = '\0';
+        end--;
+    }
+    return s;
+}
 
 int main() {
     stdio_init_all();                // initialise STDIO (UART et USB CDC si activé)
@@ -37,8 +49,6 @@ int main() {
             printf("M: %d\r\n", v_mot);
         }
 
-        // int c = getchar(); // blocant : attend un caractère sur stdio (USB CDC si activé)
-        // printf("Caractère reçu: %c (code %d)\r\n", c, c);
         
         if (stdio_usb_connected()) {
             int c = getchar_timeout_us(0); // Lecture non-bloquante
@@ -60,15 +70,7 @@ int main() {
                     line[idx] = '\0';
                     if (idx > 0) {
                         // Trim éventuels espaces en début/fin
-                        // Trim left
-                        char *s = line;
-                        while (*s && (*s == ' ' || *s == '\t')) s++;
-                        // Trim right
-                        char *end = s + strlen(s) - 1;
-                        while (end >= s && (*end == ' ' || *end == '\t')) {
-                            *end = '\0';
-                            end--;
-                        }
+                        char* s = make_readable(line);
 
                         if (strcasecmp(s, "LED ON") == 0) {
                             pico_set_led(true);

@@ -1,4 +1,4 @@
-#include "lib/wifi/include/wifi_connect.h"
+#include "../include/wifi_connect.h"
 
 static wifi_network_t network = {NULL, NULL};
 
@@ -18,7 +18,7 @@ err_t connect_to_wifi(const char *ssid, const char *password, const int timeout_
         return -1;
     } else {
         printf("Connected.\n");
-        pico_toggle_led();
+        // pico_toggle_led();
     }
     return 0;
 }
