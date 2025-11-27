@@ -16,12 +16,12 @@
 void process_command(const char *command) {
     if (strcasecmp(command, "LED ON") == 0) {
         pico_set_led(true);
-        printf("✅ LED allumée\r\n");
+        debug_print("✅ LED allumée\r\n");
     } else if (strcasecmp(command, "LED OFF") == 0) {
         pico_set_led(false);
-        printf("💤 LED éteinte\r\n");
+        debug_print("💤 LED éteinte\r\n");
     } else {
-        printf("Commande inconnue: %s\r\n", command);
+        debug_print("Commande inconnue: %s\r\n", command);
     }
 }
 
@@ -34,9 +34,9 @@ int main() {
 
     char line[LINE_BUF_SIZE];
     size_t idx = 0;
-
+    wait_for_first_serial_command();
     // Petit message d'accueil
-    printf("Pico C - Serial command interface ready\r\n");
+    debug_print("Pico C - Serial command interface ready\r\n");
     uint64_t t_us_previous = time_us_64();
     while (true) {
         v_mot++;

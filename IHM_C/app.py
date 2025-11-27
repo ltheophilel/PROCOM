@@ -43,7 +43,6 @@ def send():
     data = request.json.get('command')
     ser.write((data + '\n').encode())
     print(data)
-    print("hello")
     return jsonify({"status": "sent", "command": data})
 
 
@@ -54,10 +53,10 @@ def read():
         print("Vitesse moteur reçue:", line)
         v_mot = line.split("M0: ")[1].strip()
         return jsonify({"v_mot0": v_mot})
-    # elif line.startswith("M1: "):
-    #     print("Vitesse moteur reçue:", line)
-    #     v_mot = line.split("M1: ")[1].strip()
-    #     return jsonify({"v_mot1": v_mot})
+    elif line.startswith("M1: "):
+        print("Vitesse moteur reçue:", line)
+        v_mot = line.split("M1: ")[1].strip()
+        return jsonify({"v_mot1": v_mot})
     else:
         return jsonify({"data": line})
 

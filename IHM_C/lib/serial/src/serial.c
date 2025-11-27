@@ -52,3 +52,28 @@ void update_motor_value(uint64_t *t_us_previous, uint32_t t_us_between, bool whi
         printf("M%d: %f\r\n", which_mot, *v_mot);
     }
 }
+
+// Note : debug_print n'affiche que si la connexion USB est établie
+// Sinon, printf() fait exactement la même chose
+void debug_print(const char *format, ...) {
+    if (stdio_usb_connected()) {
+        va_list args;
+        va_start(args, format);
+        vprintf(format, args);
+        va_end(args);
+    }  
+}
+
+
+// Attend la première commande série avant de continuer
+void wait_for_first_serial_command() {
+    printf("Waiting for first serial command...\r\n");
+    char line[LINE_BUF_SIZE];
+    size_t idx = 0;
+    int c = getchar();
+    while (c == PICO_ERROR_TIMEOUT || c == EOF) {
+        sleep_ms(100);
+        c = getchar();
+    }
+    printf("USB Serial connected.\r\n");
+}
