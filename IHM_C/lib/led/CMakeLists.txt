@@ -8,6 +8,5 @@ target_include_directories(led_lib PUBLIC
 
 target_link_libraries(led_lib
     pico_stdlib
-    pico_cyw43_arch
     pico_cyw43_arch_lwip_threadsafe_background
 )

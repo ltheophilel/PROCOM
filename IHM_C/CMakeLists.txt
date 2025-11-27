@@ -36,13 +36,12 @@ pico_sdk_init()
 add_subdirectory(lib/led)
 add_subdirectory(lib/oled)
 add_subdirectory(lib/wifi)
+add_subdirectory(lib/serial)
 
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(IHM_C 
             IHM_C.c 
-            lib/wifi/src/tcp_server.c
-        lib/wifi/src/wifi_connect.c
         )
 
 pico_set_program_name(IHM_C "IHM_C")
@@ -70,6 +69,7 @@ target_link_libraries(IHM_C
         led_lib
         oled_lib
         wifi_lib
+        serial_lib
         )
 
 pico_add_extra_outputs(IHM_C)
