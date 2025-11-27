@@ -30,7 +30,7 @@ void process_command(const char *command) {
 int main() {
     stdio_init_all();                // initialise STDIO (USB)
     pico_led_init();           // initialise la LED
-    int v_mot = 0;
+    float v_mot = 0;
 
     char line[LINE_BUF_SIZE];
     size_t idx = 0;
@@ -39,7 +39,8 @@ int main() {
     printf("Pico C - Serial command interface ready\r\n");
     uint64_t t_us_previous = time_us_64();
     while (true) {
-        update_motor_value(&t_us_previous, &v_mot);
+        v_mot++;
+        update_motor_value(&t_us_previous, 1000000, 0, &v_mot);
         handle_serial_input(line, &idx, process_command);
     }
     return 0;

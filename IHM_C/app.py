@@ -50,10 +50,14 @@ def send():
 @app.route('/read', methods=['GET'])
 def read():
     line = ser.readline().decode(errors='ignore').strip()
-    if line.startswith("M: "): 
+    if line.startswith("M0: "): 
         print("Vitesse moteur reçue:", line)
-        v_mot = line.split("M: ")[1].strip()
-        return jsonify({"v_mot": v_mot})
+        v_mot = line.split("M0: ")[1].strip()
+        return jsonify({"v_mot0": v_mot})
+    # elif line.startswith("M1: "):
+    #     print("Vitesse moteur reçue:", line)
+    #     v_mot = line.split("M1: ")[1].strip()
+    #     return jsonify({"v_mot1": v_mot})
     else:
         return jsonify({"data": line})
 

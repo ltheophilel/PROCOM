@@ -12,7 +12,7 @@
   <div id="global">
      <div style="float:left;width:40%;" id="Gauche">
       <p>Envoyer une commande au microcontrôleur :</p>
-      <input id="cmd" placeholder="Commande à envoyer">
+      <input id="cmd" placeholder="Commande à envoyer" onkeypress="if(event.key === 'Enter') send()">
       <button onclick="send()">Envoyer</button>
       <pre id="output"></pre>
       <script>
@@ -32,8 +32,11 @@
           if (data.data) {
             document.getElementById('output').textContent += data.data + '\n';
           }
-          if (data.v_mot) {
-            document.getElementById('v_mot').textContent = data.v_mot;
+          if (data.v_mot0) {
+            document.getElementById('v_mot0').textContent = data.v_mot0;
+          }
+          if (data.v_mot1) {
+            document.getElementById('v_mot1').textContent = data.v_mot1;
           }
           setTimeout(readLoop, 500);
         }
@@ -41,7 +44,8 @@
       </script>
      </div>
      <div style="float:left;width:60%;" id="Droite">
-      <p>Vitesse : <span id="v_mot">0</span></p>
+      <p>Vitesse du moteur droit : <span id="v_mot0">0</span></p>
+      <p>Vitesse du moteur gauche : <span id="v_mot1">0</span></p>
       <img src="{{ url_for('static', filename='images/EAM_Nuvolari_S1_640x480.jpg') }}" />
      </div>
   </div>

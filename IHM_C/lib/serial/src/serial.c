@@ -45,11 +45,10 @@ void handle_serial_input(char *line, size_t *idx, void (*command_callback)(const
 
 
 // Met à jour la valeur du moteur toutes les secondes
-void update_motor_value(uint64_t *t_us_previous, int *v_mot) {
+void update_motor_value(uint64_t *t_us_previous, uint32_t t_us_between, bool which_mot, float *v_mot) {
     uint64_t t_us_current = time_us_64();
-    if (t_us_current - *t_us_previous >= 1000000) { // 1 seconde
+    if (t_us_current - *t_us_previous >= t_us_between) { // 1 seconde
         *t_us_previous = t_us_current;
-        (*v_mot)++;
-        printf("M: %d\r\n", *v_mot);
+        printf("M%d: %f\r\n", which_mot, *v_mot);
     }
 }
