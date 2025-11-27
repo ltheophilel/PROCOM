@@ -56,3 +56,4 @@ dkms.conf
 
 # Build directory inside camera : 
 build
+Moteur/moteur.py
