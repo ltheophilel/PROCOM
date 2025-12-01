@@ -61,6 +61,7 @@ int main() {
     gpio_init(CAMERA_PCLK_PIN);
     gpio_set_dir(CAMERA_PCLK_PIN, GPIO_IN);
 
+    // TODO : essayer bus aquisition parallele
     // init DATA pins
     int datapins[8] = {CAMERA_D0, CAMERA_D1, CAMERA_D2, CAMERA_D3, CAMERA_D4, CAMERA_D5, CAMERA_D6, CAMERA_D7};
     for (int i=0; i<8; i++) {
