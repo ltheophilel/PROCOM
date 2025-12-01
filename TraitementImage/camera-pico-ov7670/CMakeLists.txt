@@ -1,21 +1,58 @@
-################################### UNUSED
-add_library(camera INTERFACE)
+# Generated Cmake Pico project file
 
-target_include_directories(camera INTERFACE
-	${CMAKE_CURRENT_LIST_DIR}/include
-)
+cmake_minimum_required(VERSION 3.13)
 
-target_sources(camera INTERFACE
-	${CMAKE_CURRENT_LIST_DIR}/camera.c
-	${CMAKE_CURRENT_LIST_DIR}/format.c
-	${CMAKE_CURRENT_LIST_DIR}/ov7670.c
-)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-pico_generate_pio_header(camera ${CMAKE_CURRENT_LIST_DIR}/camera.pio)
+# Initialise pico_sdk from installed location
+# (note this can come from environment, CMake cache etc)
 
-target_link_libraries(camera INTERFACE
-	hardware_clocks
-	hardware_dma
-	hardware_irq
-	hardware_pio
-)
+# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
+if(WIN32)
+    set(USERHOME $ENV{USERPROFILE})
+else()
+    set(USERHOME $ENV{HOME})
+endif()
+set(sdkVersion 2.2.0)
+set(toolchainVersion 14_2_Rel1)
+set(picotoolVersion 2.2.0-a4)
+set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
+if (EXISTS ${picoVscode})
+    include(${picoVscode})
+endif()
+# ====================================================================================
+set(PICO_BOARD pico2_w  CACHE STRING "Board type")
+
+# Pull in Raspberry Pi Pico SDK (must be before project)
+include(pico_sdk_import.cmake)
+
+project(test_c C CXX ASM)
+
+# Initialise the Raspberry Pi Pico SDK
+pico_sdk_init()
+
+# Add executable. Default name is the project name, version 0.1
+
+add_executable(test_c
+    main.c
+    ov7670.c
+    camera.c
+    )
+
+# Enable USB stdio
+pico_enable_stdio_usb(test_c 1)
+pico_enable_stdio_uart(test_c 0)
+
+# pull in common dependencies
+target_link_libraries(test_c pico_stdlib hardware_i2c)
+
+if (PICO_CYW43_SUPPORTED)
+    target_link_libraries(test_c pico_cyw43_arch_none hardware_i2c)
+endif()
+
+# create map/bin/hex file etc.
+pico_add_extra_outputs(test_c)
+
+# add url via pico_set_program_url

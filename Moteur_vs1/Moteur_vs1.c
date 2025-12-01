@@ -5,6 +5,11 @@
 #define PIN_DIR 14
 #define PIN_EN  15
 
+
+#define ENC_SA  16    // canal A do encoder
+#define ENC_SB  17    // canal B do encoder
+
+
 int main() {
     stdio_init_all();
 
@@ -24,13 +29,13 @@ int main() {
     pwm_set_wrap(slice_num, 6249);
 
     // Define duty cycle (0–6249)
-    pwm_set_gpio_level(PIN_EN, 3124);  // 50%
+    pwm_set_gpio_level(PIN_EN, 6248);  // 50%
 
     // Ativa o PWM
     pwm_set_enabled(slice_num, true);
 
     // Define direção horário
-    gpio_put(PIN_DIR, 0);
+    gpio_put(PIN_DIR, 1);
 
     // Roda o motor por 3 segundos
     sleep_ms(3000);

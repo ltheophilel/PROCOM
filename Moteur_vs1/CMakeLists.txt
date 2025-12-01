@@ -28,49 +28,38 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(IHM_C C CXX ASM)
+project(moteur_vs2 C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_subdirectory(lib/led)
-add_subdirectory(lib/oled)
-add_subdirectory(lib/wifi)
-add_subdirectory(lib/serial)
-
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(IHM_C 
-            IHM_C.c 
-        )
+add_executable(moteur_vs2 moteur_vs2.c )
 
-pico_set_program_name(IHM_C "IHM_C")
-pico_set_program_version(IHM_C "0.1")
+pico_set_program_name(moteur_vs2 "moteur_vs2")
+pico_set_program_version(moteur_vs2 "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(IHM_C 0)
-pico_enable_stdio_usb(IHM_C 1)
+pico_enable_stdio_uart(moteur_vs2 0)
+pico_enable_stdio_usb(moteur_vs2 1)
 
-# # Add the standard library to the build
-# target_link_libraries(IHM_C
-#         pico_stdlib)
-
-if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(IHM_C pico_cyw43_arch_none)
-endif()
+# Add the standard library to the build
+target_link_libraries(moteur_vs2
+        pico_stdlib
+        hardware_pwm
+        hardware_gpio
+        )
 
 # Add the standard include files to the build
-target_include_directories(IHM_C PRIVATE
+target_include_directories(moteur_vs2 PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
-target_link_libraries(IHM_C 
-        led_lib
-        oled_lib
-        wifi_lib
-        serial_lib
+target_link_libraries(moteur_vs2
+        
         )
 
-pico_add_extra_outputs(IHM_C)
+pico_add_extra_outputs(moteur_vs2)
 

@@ -5,3 +5,4 @@
 #include "wifi/include/tcp_server.h"
 #include "wifi/include/wifi_connect.h"
 #include "wifi/include/lwipopts_examples_common.h"
+#include "serial/include/serial.h"
