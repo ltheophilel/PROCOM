@@ -9,7 +9,7 @@ import socket
 import time
 
 # Adresse IP du Pico (remplace par l'IP réelle)
-PICO_IP = "192.168.1.43"
+PICO_IP = "172.20.10.2"
 # "192.168.31.242"
 # "192.168.1.43"
 # Port du serveur TCP sur le Pico
