@@ -30,6 +30,8 @@ include(pico_sdk_import.cmake)
 
 project(moteur_vs2 C CXX ASM)
 
+add_subdirectory(lib/Moteur)
+
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
@@ -58,7 +60,7 @@ target_include_directories(moteur_vs2 PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(moteur_vs2
-        
+        moteur_lib
         )
 
 pico_add_extra_outputs(moteur_vs2)
