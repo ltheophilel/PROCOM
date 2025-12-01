@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico_w CACHE STRING "Board type")
+set(PICO_BOARD pico2 CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -43,7 +43,9 @@ add_executable(test
 # pull in common dependencies
 target_link_libraries(test 
                     pico_stdlib
-                    hardware_pwm)
+                    hardware_pwm
+                    hardware_gpio
+                    )
 
 if (PICO_CYW43_SUPPORTED)
     target_link_libraries(test pico_cyw43_arch_none)
@@ -51,5 +53,7 @@ endif()
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(test)
+pico_enable_stdio_usb(test 1)
+pico_enable_stdio_uart(test 0)
 
 # add url via pico_set_program_url
