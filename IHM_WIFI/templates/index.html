@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Interface Microcontrôleur</title>
+</head>
+<body>
+  <div>
+    <h1>PROCOM Base Roulante</h1>
+  </div>
+
+  <div id="global">
+     <div style="float:left;width:40%;" id="Gauche">
+      <p>Envoyer une commande au microcontrôleur :</p>
+      <input id="cmd" placeholder="Commande à envoyer" onkeypress="if(event.key === 'Enter') send()">
+      <button onclick="send()">Envoyer</button>
+      <pre id="output"></pre>
+      <script>
+        async function send() {
+          const command = document.getElementById('cmd').value;
+          await fetch('/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({command})
+          });
+          document.getElementById('cmd').value = '';
+        }
+
+        async function readLoop() {
+          const res = await fetch("/read");
+          const json = await res.json();
+
+          if (json.data) {
+              const out = document.getElementById("output");
+              json.data.forEach(line => {
+                  out.textContent = line + "\n" + out.textContent;
+              });
+              out.scrollTop = out.scrollHeight;
+          }
+          if (json.v_mot0 !== undefined) {
+              document.getElementById("v_mot0").textContent = json.v_mot0;
+          }
+          if (json.v_mot1 !== undefined) {
+              document.getElementById("v_mot1").textContent = json.v_mot1;
+          }
+
+          setTimeout(readLoop, 200); // MaJ de la page toutes les X ms
+      }
+
+      readLoop();
+      </script>
+     </div>
+     <div style="float:left;width:60%;" id="Droite">
+      <p>Vitesse du moteur droit : <span id="v_mot0">0</span></p>
+      <p>Vitesse du moteur gauche : <span id="v_mot1">0</span></p>
+      <img src="{{ url_for('static', filename='images/EAM_Nuvolari_S1_640x480.jpg') }}" />
+     </div>
+  </div>
+
+  
+</body>
+</html>
