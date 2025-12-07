@@ -39,6 +39,7 @@ add_executable(test_c
     main.c
     ov7670.c
     camera.c
+    init_camera.c
     )
 
 # Enable USB stdio
