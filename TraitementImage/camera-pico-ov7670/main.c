@@ -4,7 +4,7 @@
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
 #include "camera.h"
-
+// ! GP pins
 #define CAMERA_XCLK_PIN 21
 #define CAMERA_PCLK_PIN 10
 #define CAMERA_HREF_PIN 9
@@ -86,11 +86,13 @@ int main() {
         },
     };
 
+    // ? CHOIX FORMAT
     const uint16_t width = CAMERA_WIDTH_DIV8;
     const uint16_t height = CAMERA_HEIGHT_DIV8;
+    OV7670_size size = OV7670_SIZE_DIV8;
 
     printf("Camera to be initialized\n");
-    if (camera_init(&camera, &platform)) return 1;
+    if (camera_init(&camera, &platform, size)) return 1;
     printf("Camera initialized\n");
 
     uint8_t *frame_buffer = malloc(2 * width * height);
@@ -104,7 +106,7 @@ int main() {
 
     while (1) {
 
-        camera_capture_blocking(&camera, frame_buffer);
+        camera_capture_blocking(&camera, frame_buffer, width, height);
 
         // Header P5
         printf("P5\n%d %d\n255\n", width, height);

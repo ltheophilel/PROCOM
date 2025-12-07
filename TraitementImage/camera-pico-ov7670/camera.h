@@ -14,6 +14,15 @@
 #define CAMERA_WIDTH_DIV8  80
 #define CAMERA_HEIGHT_DIV8 60
 
+#define CAMERA_WIDTH_DIV4  160
+#define CAMERA_HEIGHT_DIV4 120
+
+#define CAMERA_WIDTH_DIV2  320
+#define CAMERA_HEIGHT_DIV2 240
+
+#define CAMERA_WIDTH_DIV1  640
+#define CAMERA_HEIGHT_DIV1 480
+
 struct camera_config {
 	uint32_t format;
 	uint16_t width;
@@ -40,9 +49,9 @@ struct camera_platform_config {
 };
 
 uint8_t camera_pixels_per_chunk(uint32_t format);
-int camera_do_frame(struct camera *camera, uint8_t *buf);
-int camera_init(struct camera *camera, struct camera_platform_config *params);
-int camera_configure(struct camera *camera, uint32_t format, uint16_t width, uint16_t height);
-int camera_capture_blocking(struct camera *camera, uint8_t *into);
+int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_t height);
+int camera_init(struct camera *camera, struct camera_platform_config *params, OV7670_size size);
+int camera_configure(struct camera *camera, uint32_t format, uint16_t width, uint16_t height, OV7670_size size);
+int camera_capture_blocking(struct camera *camera, uint8_t *into, uint16_t width, uint16_t height);
 
 #endif /* __CAMERA_H__ */

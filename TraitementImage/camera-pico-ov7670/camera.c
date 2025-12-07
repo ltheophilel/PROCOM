@@ -40,7 +40,7 @@ static bool camera_detect(struct camera_platform_config *platform)
 	return val == 0x76;
 }
 
-int camera_init(struct camera *camera, struct camera_platform_config *params)
+int camera_init(struct camera *camera, struct camera_platform_config *params, OV7670_size size)
 {
 	OV7670_status status;
 
@@ -66,19 +66,19 @@ int camera_init(struct camera *camera, struct camera_platform_config *params)
 	}
 
 	// Note: Frame rate is ignored
-	status = OV7670_begin(&camera->driver_host, OV7670_COLOR_YUV, OV7670_SIZE_DIV8, 0.0);
+	status = OV7670_begin(&camera->driver_host, OV7670_COLOR_YUV, size, 0.0);
 	if (status != OV7670_STATUS_OK) {
 		return -1;
 	}
 	return 0;
 }
 
-int camera_configure(struct camera *camera, uint32_t format, uint16_t width, uint16_t height)
+int camera_configure(struct camera *camera, uint32_t format, uint16_t width, uint16_t height, OV7670_size size)
 {
 	struct camera_platform_config *platform = camera->driver_host.platform;
 
 	OV7670_set_format(platform, format);
-	OV7670_set_size(platform, OV7670_SIZE_DIV8);
+	OV7670_set_size(platform, size);
 
 	camera->config.format = format;
 	camera->config.width = width;
@@ -99,7 +99,7 @@ uint8_t camera_pixels_per_chunk(uint32_t format)
 	}
 }
 
-int camera_do_frame(struct camera *camera, uint8_t *buf)
+int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_t height)
 {
     uint8_t href_val = 0;
     uint8_t href_prev = 0;
@@ -112,7 +112,7 @@ int camera_do_frame(struct camera *camera, uint8_t *buf)
     while (!gpio_get(camera->platform->vsync_pin)) {}
     while ( gpio_get(camera->platform->vsync_pin)) {}
 
-    while (row < CAMERA_HEIGHT_DIV8)
+    while (row < height)
     {
         href_val = gpio_get(camera->platform->href_pin);
 
@@ -155,7 +155,7 @@ int camera_do_frame(struct camera *camera, uint8_t *buf)
                     (gpio_get(camera->platform->data_pins[1]) << 1) |
                     (gpio_get(camera->platform->data_pins[0]));
 
-                int idx = (row * CAMERA_WIDTH_DIV8 + col) * 2;
+                int idx = (row * width + col) * 2;
                 buf[idx]     = high;
                 buf[idx + 1] = low;
 
@@ -176,9 +176,9 @@ int camera_do_frame(struct camera *camera, uint8_t *buf)
     return 0;
 }
 
-int camera_capture_blocking(struct camera *camera, uint8_t *into)
+int camera_capture_blocking(struct camera *camera, uint8_t *into, uint16_t width, uint16_t height)
 {
-	return camera_do_frame(camera, into);
+	return camera_do_frame(camera, into, width, height);
 }
 
 int OV7670_read_register(void *platform, uint8_t reg)
