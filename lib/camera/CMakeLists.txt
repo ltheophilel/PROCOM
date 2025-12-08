@@ -1,4 +1,3 @@
-
 add_library(camera_lib STATIC
     src/ov7670.c
     src/camera.c

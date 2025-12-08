@@ -7,6 +7,7 @@
 #include "pico/stdlib.h"
 #include "camera.h"
 #include "init_camera.h"
+#include "traitement.h"
 
 
 int main()
@@ -32,9 +33,9 @@ int main()
     printf("Camera initialised\n");
 
     /* Creation Buffers Camera */
-    uint8_t *frame_buffer, *outbuf;
+    uint8_t *frame_buffer, *outbuf, *bw_outbuf;
     int creation_buffer_out = creation_buffers_camera(&frame_buffer, &outbuf,
-                           width, height);
+                           &bw_outbuf, width, height);
 
     while (1)
     {
@@ -47,6 +48,11 @@ int main()
         for (int px = 0; px < width * height; px++)
             outbuf[px] = frame_buffer[px * 2];
 
+        // Traitement
+        int seuillage_out = seuillage(outbuf, bw_outbuf,
+                                      width, height);
+        int direction = choix_direction(bw_outbuf, width, height);
+        // Envoi de l'image
         fwrite(outbuf, 1, width * height, stdout);
         fflush(stdout);
 

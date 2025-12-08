@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-ascii_dump.py
+terminal_viewer.py
 
 Lit le flux série du Pico octet par octet et affiche
 les caractères ASCII dans le terminal. Les octets non
 imprimables sont remplacés par '.'
+
+Fait pour Linux
 """
 
 import serial
