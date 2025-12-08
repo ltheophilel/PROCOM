@@ -15,3 +15,6 @@
 #include "camera/include/init_camera.h"
 #include "camera/include/camera.h"
 #include "camera/include/ov7670.h"
+
+#include "traitement_image/include/traitement.h"
+
