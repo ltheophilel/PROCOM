@@ -8,7 +8,9 @@
 * To communicate with the SSD1306 device, it uses "i2csend" utility (part of this repsitory)
 * to send commands and data (bitmaps).
 */
-
+#include "hardware/i2c.h"
+#include "hardware/gpio.h"
+#include "pico/time.h"
 #ifndef DIGIT_RENDERER_H
 #define DIGIT_RENDERER_H
 
@@ -32,4 +34,5 @@ void renderTest(void);
 void initDisplay(void);
 void clearDisplay(void);
 void renderIPString(const char* str);
+void initOLED(short SDA, short SCL);
 #endif

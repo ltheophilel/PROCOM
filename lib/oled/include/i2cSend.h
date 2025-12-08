@@ -50,5 +50,6 @@
 int sendCommand(unsigned char command);
 int sendDataByte(unsigned char byte);
 int sendDataBlock(unsigned char *block,const unsigned int size);
+void initOLED(short SDA, short SCL);
 
 #endif

@@ -23,22 +23,30 @@
 
 extern char *IP4ADDR;
 
-typedef struct TCP_SERVER_T_ {
+// typedef struct TCP_SERVER_T_ {
+//     struct tcp_pcb *server_pcb;
+//     struct tcp_pcb *client_pcb;
+//     bool complete;
+//     uint8_t buffer_sent[BUF_SIZE];
+//     uint8_t buffer_recv[BUF_SIZE];
+//     int sent_len;
+//     int recv_len;
+//     int run_count;
+// } TCP_SERVER_T;
+
+
+typedef struct {
     struct tcp_pcb *server_pcb;
     struct tcp_pcb *client_pcb;
-    bool complete;
-    uint8_t buffer_sent[BUF_SIZE];
-    uint8_t buffer_recv[BUF_SIZE];
-    int sent_len;
-    int recv_len;
-    int run_count;
+    uint8_t buffer_recv[256];
+    size_t recv_len;
 } TCP_SERVER_T;
 
 
 
 TCP_SERVER_T* tcp_server_start(void);
-void tcp_server_stop(TCP_SERVER_T *state);
-err_t tcp_server_send(TCP_SERVER_T *state, const uint8_t *data, size_t len);
+// void tcp_server_stop(TCP_SERVER_T *state);
+err_t tcp_server_send(TCP_SERVER_T *state, const char *msg);
 size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buffer, size_t max_len);
 
 #endif /* TCP_SERVER_H */

@@ -43,3 +43,6 @@ void init_motor_and_encoder(moteur_config *motor);
 void set_motor_encoder(moteur_config *motor, uint speed_period_ms);
 void motor_set_pwm(moteur_config *motor, float level);
 void motor_set_direction(moteur_config *motor, bool direction);
+float motor_get_speed(moteur_config *motor) {
+    return motor->motor_speed_rpm;
+};

@@ -8,6 +8,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include "../include/i2cSend.h"
 
 
 //Send command to SSD1306
