@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "init_camera.h"
+#include "../include/init_camera.h"
 #include "hardware/i2c.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
-#include "camera.h"
+#include "../include/camera.h"
 
 int __i2c_write_blocking(void *i2c_handle, uint8_t addr,
     const uint8_t *src, size_t len)

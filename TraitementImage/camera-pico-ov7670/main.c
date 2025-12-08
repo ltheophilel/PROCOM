@@ -62,5 +62,6 @@ int main()
 
     free(frame_buffer);
     free(outbuf);
+    free(bw_outbuf);
     return 0;
 }

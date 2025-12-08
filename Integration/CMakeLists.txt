@@ -38,41 +38,46 @@ add_subdirectory(lib/oled)
 add_subdirectory(lib/wifi)
 add_subdirectory(lib/serial)
 add_subdirectory(lib/Moteur)
+add_subdirectory(lib/camera)
+add_subdirectory(lib/traitement_image)
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(IHM_WIFI 
-            IHM_WIFI.c 
+add_executable(DEMO 
+            main.c 
         )
 
-pico_set_program_name(IHM_WIFI "IHM_WIFI")
-pico_set_program_version(IHM_WIFI "0.1")
+pico_set_program_name(DEMO "DEMO")
+pico_set_program_version(DEMO "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(IHM_WIFI 0)
-pico_enable_stdio_usb(IHM_WIFI 1)
+pico_enable_stdio_uart(DEMO 0)
+pico_enable_stdio_usb(DEMO 1)
 
 # # Add the standard library to the build
-# target_link_libraries(IHM_WIFI
+# target_link_libraries(DEMO
 #         pico_stdlib)
 
+target_link_libraries(DEMO pico_stdlib hardware_i2c)
 if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(IHM_WIFI pico_cyw43_arch_none)
+    target_link_libraries(DEMO pico_cyw43_arch_none pico_stdlib hardware_i2c)
 endif()
 
 # Add the standard include files to the build
-target_include_directories(IHM_WIFI PRIVATE
+target_include_directories(DEMO PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
-target_link_libraries(IHM_WIFI 
+target_link_libraries(DEMO 
         led_lib
         oled_lib
         wifi_lib
         serial_lib
         moteur_lib
+        camera_lib
+        traitement_lib
         )
 
-pico_add_extra_outputs(IHM_WIFI)
+pico_add_extra_outputs(DEMO)
 

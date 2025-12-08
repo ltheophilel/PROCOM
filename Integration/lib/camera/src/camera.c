@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include "pico/stdlib.h"
 #include "hardware/clocks.h"
-#include "camera.h"
-#include "ov7670.h"
+#include "../include/camera.h"
+#include "../include/ov7670.h"
 
 
 static bool camera_detect(struct camera_platform_config *platform)
