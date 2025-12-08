@@ -11,4 +11,6 @@ target_include_directories(camera_lib PUBLIC
 target_link_libraries(camera_lib 
     pico_stdlib 
     hardware_i2c
+    pico_cyw43_arch
+    pico_cyw43_arch_lwip_threadsafe_background
 )
