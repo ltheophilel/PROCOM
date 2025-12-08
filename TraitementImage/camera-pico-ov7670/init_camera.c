@@ -111,6 +111,13 @@ int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **
         free(frame_buffer);
         return 1;
     }
+
+    *bw_outbuf = malloc(width * height);   // 1 octet par pixel (P5) (1 bit suffirait)
+    if (!bw_outbuf) {
+        free(frame_buffer);
+        free(outbuf);
+        return 1;
+    }
     return 0;
 }
 

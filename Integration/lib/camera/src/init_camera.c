@@ -100,7 +100,7 @@ int choix_format(int division,
     return 0;
 }
 
-int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf,
+int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **bw_outbuf,
                             uint16_t width, uint16_t height)
 {
     *frame_buffer = malloc(2 * width * height);
@@ -109,6 +109,13 @@ int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf,
     *outbuf = malloc(width * height);   // 1 octet par pixel (P5)
     if (!outbuf) {
         free(frame_buffer);
+        return 1;
+    }
+
+    *bw_outbuf = malloc(width * height);   // 1 octet par pixel (P5) (1 bit suffirait)
+    if (!bw_outbuf) {
+        free(frame_buffer);
+        free(outbuf);
         return 1;
     }
     return 0;
