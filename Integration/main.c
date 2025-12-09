@@ -3,8 +3,8 @@
 #include "lib/lib.h"
 #include "hardware/i2c.h"
 
-#define I2C_SDA 8
-#define I2C_SCL 9
+#define I2C_SDA 26
+#define I2C_SCL 27
 
 
 // Supprime les espaces en début et fin de chaîne
@@ -138,8 +138,9 @@ int main() {
                                       width, height);
         int direction = choix_direction(bw_outbuf, width, height);
         // Envoi de l'image
-        fwrite(outbuf, 1, width * height, stdout);
-        fflush(stdout);
+        // fwrite(outbuf, 1, width * height, stdout);
+        // fflush(stdout);
+        tcp_server_send(state, outbuf);
 
         // FPS max → pas de pause
         tight_loop_contents();

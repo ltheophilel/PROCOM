@@ -44,12 +44,12 @@
 #define DISPLAY_BEGIN_PAGE      0x00
 #define DISPLAY_END_PAGE        0x07
 
-
+#define I2C_ADDRESS_OLED             0x3c
+#define USED_I2C_PORT               ((&i2c1_inst)) // i2c_default
 
 
 int sendCommand(unsigned char command);
 int sendDataByte(unsigned char byte);
 int sendDataBlock(unsigned char *block,const unsigned int size);
-void initOLED(short SDA, short SCL);
 
 #endif

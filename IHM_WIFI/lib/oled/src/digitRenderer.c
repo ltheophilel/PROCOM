@@ -187,7 +187,7 @@ void clearDisplay(void){
 void initOLED(short SDA, short SCL)
 {
     short GPIO_FUNC_I2C = 3; // définie quelque part, c'est sa bonne valeur
-    i2c_init(i2c_default, 400 * 1000); // Initialize I2C with clock fequency 400kHz
+    i2c_init(USED_I2C_PORT, 400 * 1000); // Initialize I2C with clock fequency 400kHz
     gpio_set_function(SDA, GPIO_FUNC_I2C);
     gpio_set_function(SCL, GPIO_FUNC_I2C);
     gpio_pull_up(SDA);

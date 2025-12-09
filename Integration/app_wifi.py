@@ -4,7 +4,7 @@ import threading
 import queue
 import time
 
-PICO_IP = "192.168.1.43"
+PICO_IP = "172.20.10.2"
 PICO_PORT = 4242
 
 sock = None

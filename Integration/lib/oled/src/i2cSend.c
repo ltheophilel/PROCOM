@@ -16,7 +16,7 @@ int sendCommand(unsigned char command){
     unsigned char buf[2];
     buf[0]=0x00;
     buf[1]=command;
-    return i2c_write_blocking(i2c_default,0x3c,buf,2,false);
+    return i2c_write_blocking(USED_I2C_PORT,I2C_ADDRESS_OLED,buf,2,false);
 }
 
 //Send a byte of data to SSD1306
@@ -24,7 +24,7 @@ int sendDataByte(unsigned char byte){
     unsigned char buf[2];
     buf[0]=0x40;
     buf[1]=byte;
-    return i2c_write_blocking(i2c_default,0x3c,buf,2,false);
+    return i2c_write_blocking(USED_I2C_PORT,I2C_ADDRESS_OLED,buf,2,false);
 }
 
 //Send a block of data to SSD1306
@@ -34,7 +34,7 @@ int sendDataBlock(unsigned char *block,const unsigned int size){
     int ret;
     buf[0]=0x40;
     memcpy(buf+1,block,size);
-    ret=i2c_write_blocking(i2c_default,0x3c,buf,size+1,false);
+    ret=i2c_write_blocking(USED_I2C_PORT,I2C_ADDRESS_OLED,buf,size+1,false);
     free(buf);
     return ret;
 }

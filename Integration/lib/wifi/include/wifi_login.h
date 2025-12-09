@@ -20,7 +20,8 @@ typedef struct wifi_network_t {
 static wifi_network_t known_networks[] = {
     {WIFI_SSID_colloc, WIFI_PASSWORD_colloc},
     {WIFI_SSID_iphone, WIFI_PASSWORD_iphone},
-    {WIFI_SSID_maison, WIFI_PASSWORD_maison}
+    {WIFI_SSID_maison, WIFI_PASSWORD_maison},
+    {"Theophile", "AAAAAAAA"}
 };
 static int known_networks_count = sizeof(known_networks) / sizeof(known_networks[0]);
 

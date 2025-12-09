@@ -3,8 +3,8 @@
 #include "lib/lib.h"
 #include "hardware/i2c.h"
 
-#define I2C_SDA 8
-#define I2C_SCL 9
+#define I2C_SDA 26
+#define I2C_SCL 27
 
 
 // Supprime les espaces en début et fin de chaîne
