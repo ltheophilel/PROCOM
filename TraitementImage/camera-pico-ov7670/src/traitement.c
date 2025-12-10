@@ -1,4 +1,4 @@
-#include "traitement.h"
+#include "../include/traitement.h"
 #include <stdlib.h>
 #include <stdio.h>
 
