@@ -32,41 +32,39 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     printf("Interpreted Command: '%s'\n", command);
     if (strcmp(command, "LED ON") == 0) {
         pico_set_led(true);
-        tcp_server_send(state, "LED is ON");
+        tcp_server_send(state, "LED is ON", PACKET_TYPE_GENERAL);
     } else if (strcmp(command, "LED OFF") == 0) {
         pico_set_led(false);
-        tcp_server_send(state, "LED is OFF");
+        tcp_server_send(state, "LED is OFF", PACKET_TYPE_GENERAL);
     } else if (estNombreEntier(command)) {
-        const char *prefix = "M0 :";
         char result[100]; // Buffer statique
-        snprintf(result, sizeof(result), "%s%s", prefix, command);
-        tcp_server_send(state, result);
+        // snprintf(result, sizeof(result), "%s%s", prefix, command);
+        tcp_server_send(state, command, PACKET_TYPE_MOT_0);
     } else {
         // Réponse simple : renvoyer exactement ce qu'on a reçu
-        tcp_server_send(state, command);
+        tcp_server_send(state, command, PACKET_TYPE_GENERAL);
     }
 }
+
+
+// BUFF_SIZE défini dans tcp_server.h
 
 int main() {
     stdio_init_all();
     sleep_ms(2000);
-
-    /* INITIALISATION IHM */
-    // sleep_ms(10000);
-
-    // err_t wifi_fail = connect_to_wifi(WIFI_SSID, WIFI_PASSWORD, 10000);
-    // if (!wifi_fail) {
-    //     pico_set_led(true); // on success
-    // }
-    wifi_auto_connect();
+    // Initialisation Wi-Fi
+    err_t connect_success = wifi_auto_connect();
+    if (connect_success != ERR_OK) {
+        printf("Échec de la connexion Wi-Fi. Arrêt du programme.\n");
+        pico_blink_led(10, 200); // Clignote rapidement pour indiquer l'erreur
+        return 1;
+    }
     pico_set_led(true); 
     
     TCP_SERVER_T* state = tcp_server_start();
-    // IP4ADDR
-    // uint64_t t_us_previous = time_us_64();
-    // uint64_t t_us_current = time_us_64();
 
 
+    // Initialisation OLED
     initOLED(I2C_SDA, I2C_SCL);
     renderSymbol(RPI,1,56); // Render the Rpi Symbol
     renderIPString(IP4ADDR);
@@ -98,7 +96,7 @@ int main() {
                            &bw_outbuf, width, height);
 
 
-
+    err_t err;
     while (true) {
         #if PICO_CYW43_ARCH_POLL
             cyw43_arch_poll();
@@ -123,25 +121,31 @@ int main() {
         //     // printf("hello\n");
         //     tcp_server_send(state, (const uint8_t *)"Hello, client!", 14);
         // }
-
+        uint64_t t_us_current = time_us_64();
         camera_capture_blocking(&camera, frame_buffer, width, height);
-
+        printf("Capture time (us): %llu\n", time_us_64() - t_us_current);
         // Header P5 : format et dimensions de l'image
-        printf("P5\n%d %d\n255\n", width, height);
+        // printf("P5\n%d %d\n255\n", width, height);
 
         // Extraire Y seulement
         for (int px = 0; px < width * height; px++)
             outbuf[px] = frame_buffer[px * 2];
 
         // Traitement
+        t_us_current = time_us_64();
         int seuillage_out = seuillage(outbuf, bw_outbuf,
                                       width, height);
-        int direction = choix_direction(bw_outbuf, width, height);
+        // printf("Seuilage time (us): %llu\n", time_us_64() - t_us_current);
+        // int direction = choix_direction(bw_outbuf, width, height);
         // Envoi de l'image
         // fwrite(outbuf, 1, width * height, stdout);
         // fflush(stdout);
-        tcp_server_send(state, outbuf);
-
+        t_us_current = time_us_64();
+        err = tcp_send_large_img(state, outbuf, width*height);
+        printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
+        if (err != ERR_OK) {
+            printf("Erreur d'envoi de l'image : %d\n", err);
+        }
         // FPS max → pas de pause
         tight_loop_contents();
     }

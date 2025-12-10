@@ -60,7 +60,111 @@ size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buf, size_t maxlen) {
 
 
 
-err_t tcp_server_send(TCP_SERVER_T *state, const char *msg) {
+err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
     if (!state->client_pcb) return ERR_CLSD;
-    return tcp_write(state->client_pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
+    uint8_t header[3]; // En-tête : [type(1), taille(2)]
+    uint8_t buffer[BUF_SIZE + 3]; // Buffer pour données + en-tête
+
+    // Construire l'en-tête
+    header[0] = type;
+    uint8_t chunk = strlen(msg);
+    header[1] = (chunk >> 8) & 0xFF; // Octet haut de la taille
+    header[2] = chunk & 0xFF;         // Octet bas de la taille
+
+    // Copier l'en-tête + les données dans le buffer
+    memcpy(buffer, header, 3);
+    memcpy(buffer + 3, msg, chunk);
+
+    err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
+    if (err == ERR_OK) {
+        tcp_output(state->client_pcb);
+    } 
+    return err;
+
+    // return tcp_write(state->client_pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
 }
+
+
+#include <string.h> // Pour memcpy
+
+err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
+    size_t sent = 0;
+    uint8_t header[3]; // En-tête : [type(1), taille(2)]
+    uint8_t buffer[BUF_SIZE + 3]; // Buffer pour données + en-tête
+
+    while (sent < len) {
+        size_t chunk = len - sent;
+        if (chunk > BUF_SIZE) {
+            chunk = BUF_SIZE;
+        }
+
+        // Déterminer le type de paquet
+        uint8_t packet_type;
+        if (sent == 0) {
+            packet_type = PACKET_TYPE_START_IMG; // Début de l'image
+        } else if (sent + chunk >= len) {
+            packet_type = PACKET_TYPE_END_IMG; // Dernier paquet
+        } else {
+            packet_type = PACKET_TYPE_IMG; // Milieu de l'image
+        }
+
+        // Construire l'en-tête
+        header[0] = packet_type;
+        header[1] = (chunk >> 8) & 0xFF; // Octet haut de la taille
+        header[2] = chunk & 0xFF;         // Octet bas de la taille
+
+        // Copier l'en-tête + les données dans le buffer
+        memcpy(buffer, header, 3);
+        memcpy(buffer + 3, data + sent, chunk);
+
+        // Envoyer le buffer
+        err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
+        if (err == ERR_OK) {
+            sent += chunk;
+            tcp_output(state->client_pcb);
+        } else if (err == ERR_MEM) {
+            sleep_ms(1);
+            continue;
+        } else {
+            return err;
+        }
+    }
+    return ERR_OK;
+}
+
+
+
+
+// err_t tcp_send_large(TCP_SERVER_T *state, const char *data, size_t len) {
+//     size_t sent = 0;
+
+//     while (sent < len) {
+//         size_t chunk = len - sent;
+//         if (chunk > BUF_SIZE) chunk = BUF_SIZE;
+
+//         err_t err = tcp_write(state->client_pcb,
+//                               data + sent,
+//                               chunk,
+//                               TCP_WRITE_FLAG_COPY);
+
+//         if (err == ERR_OK) {
+//             // On avance le pointeur
+//             sent += chunk;
+
+//             // Envoie immédiat des segments
+//             tcp_output(state->client_pcb);
+
+//         } else if (err == ERR_MEM) {
+//             // Pas assez de place : on attend un peu
+//             // (lwIP va purger quand les ACK arrivent)
+//             sleep_ms(1);
+//             continue;
+
+//         } else {
+//             // Autre erreur = fatal
+//             return err;
+//         }
+//     }
+
+//     return ERR_OK;
+// }

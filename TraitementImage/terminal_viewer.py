@@ -13,7 +13,7 @@ import serial
 import sys
 
 # --- CONFIGURATION ---
-PORT = "/dev/ttyACM0"  # remplace si nécessaire
+PORT = "COM13"#"/dev/ttyACM0"  # remplace si nécessaire
 BAUD = 115200           # vitesse série
 TIMEOUT = 0.1           # en secondes
 

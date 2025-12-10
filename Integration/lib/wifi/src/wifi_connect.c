@@ -73,10 +73,10 @@ err_t wifi_auto_connect(void) {
 
     if (connect_to_wifi(network.ssid, network.password, 10000, false) == 0) {
         printf("Connecté avec succès à %s !\n", network.ssid);
-        return 1;  // Arrête le scan après connexion
+        return ERR_OK;  // Arrête le scan après connexion
     } else {
         printf("Échec de la connexion à %s.\n", network.ssid);
-        return 0;  // Continue le scan si la connexion échoue
+        return ERR_TIMEOUT;  
     }
     return err;
 }

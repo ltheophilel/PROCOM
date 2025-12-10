@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 
 # === CONFIGURATION ===
-PORT = "COM4"
+PORT = "COM13"
 BAUD = 115200      # Le baud est ignoré par USB CDC mais requis par pyserial
 TIMEOUT = 1
 

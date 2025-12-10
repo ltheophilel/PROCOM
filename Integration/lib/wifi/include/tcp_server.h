@@ -19,7 +19,7 @@
 
 #define TCP_PORT 4242
 #define DEBUG_printf printf
-#define BUF_SIZE 512
+#define BUF_SIZE 1024
 
 extern char *IP4ADDR;
 
@@ -42,11 +42,18 @@ typedef struct {
     size_t recv_len;
 } TCP_SERVER_T;
 
-
+typedef enum {
+    PACKET_TYPE_START_IMG = 0,
+    PACKET_TYPE_IMG = 1,
+    PACKET_TYPE_END_IMG = 2,
+    PACKET_TYPE_MOT_0 = 3,
+    PACKET_TYPE_MOT_1 = 4,
+    PACKET_TYPE_GENERAL = 5
+} PACKET_TYPE;
 
 TCP_SERVER_T* tcp_server_start(void);
 // void tcp_server_stop(TCP_SERVER_T *state);
-err_t tcp_server_send(TCP_SERVER_T *state, const char *msg);
+err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type);
 size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buffer, size_t max_len);
-
+err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len);
 #endif /* TCP_SERVER_H */
