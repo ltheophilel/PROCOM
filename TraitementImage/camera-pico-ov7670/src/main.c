@@ -5,9 +5,9 @@
 #include "hardware/i2c.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
-#include "camera.h"
-#include "init_camera.h"
-#include "traitement.h"
+#include "../include/camera.h"
+#include "../include/init_camera.h"
+#include "../include/traitement.h"
 
 
 int main()
