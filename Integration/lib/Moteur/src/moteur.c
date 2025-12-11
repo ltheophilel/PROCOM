@@ -1,21 +1,21 @@
 #include "../include/moteur.h"
 
 
-moteur_config moteur1 = {
-    .pin_SA  = 16,
-    .pin_SB  = 17,
-    .pin_EN  = 15,
-    .pin_DIR = 14,
+moteur_config moteur0 = {
+    .pin_SA  = 3,
+    .pin_SB  = 2,
+    .pin_EN  = 1,
+    .pin_DIR = 0,
     .last_position = 0,
     .motor_position = 0,
     .motor_speed_rpm = 0.0f
 };
 
-moteur_config moteur2 = {
-    .pin_SA  = 16,
-    .pin_SB  = 17,
-    .pin_EN  = 15,
-    .pin_DIR = 14,
+moteur_config moteur1 = {
+    .pin_SA  = 7,
+    .pin_SB  = 6,
+    .pin_EN  = 5,
+    .pin_DIR = 4,
     .last_position = 0,
     .motor_position = 0,
     .motor_speed_rpm = 0.0f
@@ -87,9 +87,9 @@ void init_motor_and_encoder(moteur_config *motor) {
     gpio_set_dir(motor->pin_SB, GPIO_IN);
     gpio_pull_up(motor->pin_SB);
 
-    gpio_set_irq_enabled_with_callback(
-        motor->pin_SA, GPIO_IRQ_EDGE_RISE, true, &encoder_isr
-    );
+    // gpio_set_irq_enabled_with_callback(
+    //     motor->pin_SA, GPIO_IRQ_EDGE_RISE, true, &encoder_isr
+    // );
 }
 
 
@@ -142,3 +142,8 @@ void motor_set_pwm(moteur_config *motor, float level) {
 void motor_set_direction(moteur_config *motor, bool direction) {
     gpio_put(motor->pin_DIR, direction);
 }
+
+
+float motor_get_speed(moteur_config *motor) {
+    return motor->motor_speed_rpm;
+};

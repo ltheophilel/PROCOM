@@ -18,8 +18,8 @@ typedef struct {
     float motor_speed_rpm;  // vitesse en RPM
 } moteur_config;
 
+extern moteur_config moteur0;
 extern moteur_config moteur1;
-extern moteur_config moteur2;
 
 
 // ----------------- PARAMÈTRES DU PWM -----------------
@@ -32,7 +32,7 @@ extern moteur_config moteur2;
 // ----------------- PARAMÈTRES DE L'ENCODEUR / VITESSE -----------------
 
 #define SPEED_PERIOD_MS     1000        // calcul de la vitesse toutes les 1 s
-#define ENC_COUNTS_PER_REV  100.0f      // TODO : remplacer par la valeur réelle de l’encodeur
+#define ENC_COUNTS_PER_REV  318.0f      // TODO : remplacer par la valeur réelle de l’encodeur
 
 // ----------------- VARIABLES GLOBALES -----------------
 
@@ -43,6 +43,4 @@ void init_motor_and_encoder(moteur_config *motor);
 void set_motor_encoder(moteur_config *motor, uint speed_period_ms);
 void motor_set_pwm(moteur_config *motor, float level);
 void motor_set_direction(moteur_config *motor, bool direction);
-float motor_get_speed(moteur_config *motor) {
-    return motor->motor_speed_rpm;
-};
+float motor_get_speed(moteur_config *motor);

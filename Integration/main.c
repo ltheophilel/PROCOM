@@ -55,14 +55,14 @@ int main() {
     // Initialisation Wi-Fi
     err_t connect_success = wifi_auto_connect();
     if (connect_success != ERR_OK) {
-        printf("Échec de la connexion Wi-Fi. Arrêt du programme.\n");
+        printf("Échec de la connexion Wi-Fi.\n");
         pico_blink_led(10, 200); // Clignote rapidement pour indiquer l'erreur
-        return 1;
-    }
-    pico_set_led(true); 
+        pico_set_led(false); 
+        // return 1;
+    } else pico_set_led(true); 
     
-    TCP_SERVER_T* state = tcp_server_start();
-
+    TCP_SERVER_T* state;
+    if (connect_success == ERR_OK) state = tcp_server_start();
 
     // Initialisation OLED
     initOLED(I2C_SDA, I2C_SCL);
@@ -71,6 +71,20 @@ int main() {
 
     uint8_t rx_buffer[BUF_SIZE];
 
+    // Initialisation moteurs
+    printf("Initialisation des moteurs\n");
+    init_motor_and_encoder(&moteur0);
+    init_motor_and_encoder(&moteur1);
+    motor_set_direction(&moteur0, 1);
+    motor_set_direction(&moteur1, 0);
+    motor_set_pwm(&moteur0, 0.);
+    motor_set_pwm(&moteur1, 0.);
+    sleep_ms(2000);
+    motor_set_pwm(&moteur0, 100.);
+    motor_set_pwm(&moteur1, 100.);
+    sleep_ms(2000);
+    motor_set_pwm(&moteur0, 0.);
+    motor_set_pwm(&moteur1, 0.);
     /* INITIALISATION CAMERA */
 
     struct camera camera;
@@ -89,7 +103,7 @@ int main() {
     printf("Camera to be initialised\n");
     if (camera_init(&camera, &platform, size)) return 1;
     printf("Camera initialised\n");
-
+    motor_set_pwm(&moteur1, 0.);
     /* Creation Buffers Camera */
     uint8_t *frame_buffer, *outbuf, *bw_outbuf;
     int creation_buffer_out = creation_buffers_camera(&frame_buffer, &outbuf,
@@ -101,18 +115,20 @@ int main() {
         #if PICO_CYW43_ARCH_POLL
             cyw43_arch_poll();
         #endif
-        int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
+        if (connect_success == ERR_OK) {
+            int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
 
-        if (received > 0) {
-            // Ajouter un '\0' pour créer une chaîne C
-            rx_buffer[received] = '\0';
+            if (received > 0) {
+                // Ajouter un '\0' pour créer une chaîne C
+                rx_buffer[received] = '\0';
 
-            printf("Reçu du client : %s\n", rx_buffer);
+                printf("Reçu du client : %s\n", rx_buffer);
 
-            // Réponse simple : renvoyer exactement ce qu'on a reçu
-            interpretCommand(state, (const char *)rx_buffer);
+                // Réponse simple : renvoyer exactement ce qu'on a reçu
+                interpretCommand(state, (const char *)rx_buffer);
+            }
+            sleep_ms(100);
         }
-        sleep_ms(100);
         
         // uint64_t t_us_current = time_us_64();
         // if (t_us_current - t_us_previous >= 1000000) { // 1 second
@@ -136,15 +152,41 @@ int main() {
         int seuillage_out = seuillage(outbuf, bw_outbuf,
                                       width, height);
         // printf("Seuilage time (us): %llu\n", time_us_64() - t_us_current);
-        // int direction = choix_direction(bw_outbuf, width, height);
+        int direction = choix_direction(bw_outbuf, width, height);
         // Envoi de l'image
         // fwrite(outbuf, 1, width * height, stdout);
         // fflush(stdout);
         t_us_current = time_us_64();
-        err = tcp_send_large_img(state, outbuf, width*height);
-        printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
-        if (err != ERR_OK) {
-            printf("Erreur d'envoi de l'image : %d\n", err);
+        if (direction == 1) {
+            // interpretCommand(state, "TURN LEFT");
+            motor_set_pwm(&moteur0, 10.);
+            motor_set_pwm(&moteur1, 0.);
+            if (connect_success == ERR_OK) {
+                tcp_server_send(state, "10", PACKET_TYPE_MOT_0);
+                tcp_server_send(state, "0", PACKET_TYPE_MOT_1);
+            }
+        } else if (direction == -1) {
+            motor_set_pwm(&moteur1, 10.);
+            motor_set_pwm(&moteur0, 0.);
+            if (connect_success == ERR_OK) {
+                tcp_server_send(state, "0", PACKET_TYPE_MOT_0);
+                tcp_server_send(state, "10", PACKET_TYPE_MOT_1);
+            }
+        } else {
+            // interpretCommand(state, "FORWARD");
+            motor_set_pwm(&moteur0, 10.);
+            motor_set_pwm(&moteur1, 10.);
+            if (connect_success == ERR_OK) {
+                tcp_server_send(state, "10", PACKET_TYPE_MOT_0);
+                tcp_server_send(state, "10", PACKET_TYPE_MOT_1);
+            }
+        }
+        if (connect_success == ERR_OK) {
+            err = tcp_send_large_img(state, outbuf, width*height);
+            printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
+            if (err != ERR_OK) {
+                printf("Erreur d'envoi de l'image : %d\n", err);
+            }
         }
         // FPS max → pas de pause
         tight_loop_contents();

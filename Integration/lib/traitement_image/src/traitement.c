@@ -55,9 +55,9 @@ int choix_direction(uint8_t *bw_image, int width, int height)
     printf("Équation de la droite : y = %.3fx + %.3f\n", m, p);
     double direction = GAIN_REGLAGE*m;
     printf("Commande = %.3f\n", direction);
-    return 0;
+    // return 0;
 
-    /* // DECISION BINAIRE
+    // DECISION BINAIRE
     int right_count = 0, left_count = 0;
 
     for (int x = 0; x < height; x++) {
@@ -71,5 +71,5 @@ int choix_direction(uint8_t *bw_image, int width, int height)
     }
 
     printf("Pixels noirs à droite : %d, à gauche : %d\n", right_count, left_count);
-    return (right_count < left_count) ? -1 : 1; */
+    return (right_count < left_count) ? -1 : 1; 
 }
