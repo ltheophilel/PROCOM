@@ -2,6 +2,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// Buffer for moving average of angle
+static double angle_buffer[MOVING_AVG_SIZE] = {0};
+static int angle_index = 0;
+
+double add_to_moving_average(double value, double *buffer, int *index, int size)
+{
+    buffer[*index] = value;
+    *index = (*index + 1) % size;
+    
+    double sum = 0;
+    for (int i = 0; i < size; i++)
+    {
+        sum += buffer[i];
+    }
+    return sum / size;
+}
 
 int seuillage(uint8_t *image,
               uint8_t *bw_image,
@@ -53,8 +69,21 @@ int choix_direction(uint8_t *bw_image, int width, int height)
     double p = ((double)sum_y - m * (double)sum_x) / n;
 
     printf("Équation de la droite : y = %.3fx + %.3f\n", m, p);
-    double direction = GAIN_REGLAGE*m;
+    double angle = atan(m) * (180.0 / PI);
+    printf("Angle brut = %.3f degrés\n", angle);
+    
+    // Apply moving average
+    double angle_avg = add_to_moving_average(angle, angle_buffer, &angle_index, MOVING_AVG_SIZE);
+    printf("Angle lissé = %.3f degrés\n", angle_avg);
+    
+    double direction = GAIN_REGLAGE*angle_avg;
     printf("Commande = %.3f\n", direction);
+
+    if (direction < -5.0)
+        return -1;
+    else if (direction > 5.0)
+        return 1;
+    else
     return 0;
 
     /* // DECISION BINAIRE

@@ -60,7 +60,7 @@ pico_enable_stdio_usb(DEMO 1)
 
 target_link_libraries(DEMO pico_stdlib hardware_i2c)
 if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(DEMO pico_cyw43_arch_none pico_stdlib hardware_i2c)
+    target_link_libraries(DEMO pico_cyw43_arch_none pico_stdlib hardware_i2c pico_multicore pico_sync)
 endif()
 
 # Add the standard include files to the build
