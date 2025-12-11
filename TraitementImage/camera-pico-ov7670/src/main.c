@@ -50,12 +50,23 @@ int main()
 
         // Traitement
         int seuillage_out = seuillage(outbuf, bw_outbuf,
-                                      width, height);
+                                    width, height);
         int direction = choix_direction(bw_outbuf, width, height);
-        // Envoi de l'image
-        fwrite(outbuf, 1, width * height, stdout);
-        fflush(stdout);
 
+
+        // Affichage de la direction
+        printf("Direction: ");
+        if (direction == -1) {
+            printf("Gauche\n");
+        } else if (direction == 1) {
+            printf("Droite\n");
+        } else {
+            printf("Tout droit\n");
+        }
+
+        // Envoi de l'image
+        // fwrite(outbuf, 1, width * height, stdout);
+        fflush(stdout);
         // FPS max → pas de pause
         tight_loop_contents();
     }
