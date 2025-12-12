@@ -135,8 +135,8 @@ void set_motor_encoder(moteur_config *motor, uint speed_period_ms)
 
 // Ajuste le duty cycle (0 à PWM_WRAP)
 void motor_set_pwm(moteur_config *motor, float level) {
-    if (level > 100.) level = 100.;
-    pwm_set_gpio_level(motor->pin_EN, level*PWM_WRAP);
+    if (level > 100.f) level = 100.f;
+    pwm_set_gpio_level(motor->pin_EN, (uint16_t)(level*PWM_WRAP / 100.f));
 }
 
 void motor_set_direction(moteur_config *motor, bool direction) {

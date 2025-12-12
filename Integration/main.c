@@ -159,18 +159,18 @@ int main() {
         t_us_current = time_us_64();
         if (direction == 1) {
             // interpretCommand(state, "TURN LEFT");
-            motor_set_pwm(&moteur0, 10.);
+            motor_set_pwm(&moteur0, 50.);
             motor_set_pwm(&moteur1, 0.);
             if (connect_success == ERR_OK) {
-                tcp_server_send(state, "10", PACKET_TYPE_MOT_0);
+                tcp_server_send(state, "50", PACKET_TYPE_MOT_0);
                 tcp_server_send(state, "0", PACKET_TYPE_MOT_1);
             }
         } else if (direction == -1) {
-            motor_set_pwm(&moteur1, 10.);
+            motor_set_pwm(&moteur1, 50.);
             motor_set_pwm(&moteur0, 0.);
             if (connect_success == ERR_OK) {
                 tcp_server_send(state, "0", PACKET_TYPE_MOT_0);
-                tcp_server_send(state, "10", PACKET_TYPE_MOT_1);
+                tcp_server_send(state, "50", PACKET_TYPE_MOT_1);
             }
         } else {
             // interpretCommand(state, "FORWARD");
