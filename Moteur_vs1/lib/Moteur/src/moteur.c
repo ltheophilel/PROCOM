@@ -1,9 +1,13 @@
 #include "../include/moteur.h"
 
 
-int32_t motor_position   = 0;   // position en "comptes"
-int32_t last_position    = 0;   // position lors du dernier calcul
-float   motor_speed_rpm  = 0.0f;
+// ----------------- VARIABLES GLOBALES -----------------
+// 'volatile' car modifiées dans l'ISR
+
+volatile int32_t motor_position   = 0;   // position en "comptes"
+volatile int32_t last_position    = 0;   // position lors du dernier calcul
+volatile float   motor_speed_rpm  = 0.0f;
+
 
 // ----------------- ISR DE L'ENCODEUR -----------------
 // Appelée à chaque front montant sur ENC_SA
@@ -36,13 +40,18 @@ bool speed_timer_cb(repeating_timer_t *t) {
     // comptes/seconde → RPM
     motor_speed_rpm = (delta / period_s) / ENC_COUNTS_PER_REV * 60.0f;
 
-    printf("Position = %ld  |  Vitesse = %.2f RPM\n",
-           (long)pos, motor_speed_rpm);
+    // ----- NOUVEAU : calcul de l’angle -----
+    float rev     = COUNTS_TO_REV(pos);
+    float angle_d = REV_TO_DEG(rev);
+
+    printf("Counts = %ld  |  Angle = %.2f deg  |  Vitesse = %.2f RPM\n",
+           (long)pos, angle_d, motor_speed_rpm);
 
     return true; // continue d’exécuter le timer
 }
 
-// ----------------- FONCTIONS UTILITAIRES -----------------
+
+// ----------------- FONCTIONS UTILITAIRES PWM -----------------
 
 // Configure le PWM sur la broche EN sans activer le moteur
 void motor_pwm_init(int gpio_en) {
@@ -66,6 +75,45 @@ void motor_pwm_init(int gpio_en) {
 // Ajuste le duty cycle (0 à PWM_WRAP)
 void motor_set_duty(int gpio_en, int16_t level) {
     if (level > PWM_WRAP) level = PWM_WRAP;
+    if (level < 0)        level = 0;
     pwm_set_gpio_level(gpio_en, level);
 }
 
+
+// ----------------- FONCTIONS D’ACCÈS (GETTERS) -----------------
+
+int32_t motor_get_position_counts(void) {
+    return motor_position;
+}
+
+float motor_get_position_rev(void) {
+    return COUNTS_TO_REV(motor_position);
+}
+
+float motor_get_angle_deg(void) {
+    float rev = COUNTS_TO_REV(motor_position);
+    return REV_TO_DEG(rev);
+}
+
+float motor_get_angle_rad(void) {
+    float rev = COUNTS_TO_REV(motor_position);
+    return REV_TO_RAD(rev);
+}
+
+float motor_get_speed_rpm(void) {
+    return motor_speed_rpm;
+}
+
+float motor_get_speed_rad_s(void) {
+    // RPM → rad/s = RPM * (2*pi / 60)
+    return motor_speed_rpm * (6.28318530718f / 60.0f);
+}
+
+/*
+// À activer si tu définis WHEEL_CIRCUM_MM dans moteur.h
+float motor_get_linear_speed_mm_s(void) {
+    // vitesse (rev/s) = RPM / 60
+    float rev_s = motor_speed_rpm / 60.0f;
+    return rev_s * WHEEL_CIRCUM_MM;
+}
+*/

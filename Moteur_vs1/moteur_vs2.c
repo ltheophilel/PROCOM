@@ -37,7 +37,7 @@ int main() {
         &encoder_isr
     );
 
-    // ---------- TIMER POUR LE CALCUL DE LA VITESSE ----------
+    // ---------- TIMER POUR LE CALCUL DE LA VITESSE / ANGLE ----------
     repeating_timer_t speed_timer;
     add_repeating_timer_ms(
         -SPEED_PERIOD_MS,   // négatif → répétitif
@@ -63,7 +63,7 @@ int main() {
     motor_set_duty(PIN_EN, 0);
     printf("Moteur ÉTEINT.\n");
 
-    // Continue d'afficher les valeurs finales (position/vitesse = 0)
+    // Continue d'afficher les valeurs finales
     while (true) {
         sleep_ms(500);
     }

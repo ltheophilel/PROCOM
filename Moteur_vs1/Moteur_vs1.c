@@ -29,7 +29,7 @@ int main() {
     pwm_set_wrap(slice_num, 6249);
 
     // Define duty cycle (0–6249)
-    pwm_set_gpio_level(PIN_EN, 6248);  // 50%
+    pwm_set_gpio_level(PIN_EN, 3124);  // 50%
 
     // Ativa o PWM
     pwm_set_enabled(slice_num, true);
@@ -38,7 +38,7 @@ int main() {
     gpio_put(PIN_DIR, 1);
 
     // Roda o motor por 3 segundos
-    sleep_ms(3000);
+    sleep_ms(000);
 
     // Para o motor
     pwm_set_gpio_level(PIN_EN, 0);
