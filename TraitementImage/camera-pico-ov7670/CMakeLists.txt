@@ -28,31 +28,33 @@ set(PICO_BOARD pico2_w  CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(test_c C CXX ASM)
+project(camera_test C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(test_c
-    main.c
-    ov7670.c
-    camera.c
+add_executable(camera_test
+    src/main.c
+    src/ov7670.c
+    src/camera.c
+    src/init_camera.c
+    src/traitement.c
     )
 
 # Enable USB stdio
-pico_enable_stdio_usb(test_c 1)
-pico_enable_stdio_uart(test_c 0)
+pico_enable_stdio_usb(camera_test 1)
+pico_enable_stdio_uart(camera_test 0)
 
 # pull in common dependencies
-target_link_libraries(test_c pico_stdlib hardware_i2c)
+target_link_libraries(camera_test pico_stdlib hardware_i2c)
 
 if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(test_c pico_cyw43_arch_none hardware_i2c)
+    target_link_libraries(camera_test pico_cyw43_arch_none hardware_i2c)
 endif()
 
 # create map/bin/hex file etc.
-pico_add_extra_outputs(test_c)
+pico_add_extra_outputs(camera_test)
 
 # add url via pico_set_program_url

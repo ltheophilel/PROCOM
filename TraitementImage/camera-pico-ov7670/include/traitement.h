@@ -1,0 +1,22 @@
+#ifndef __TRAITEMENT_H__
+#define __TRAITEMENT_H__
+
+#include <stdint.h>
+#include <math.h>
+
+#define MAX_WIDTH 640
+#define MAX_HEIGHT 480
+
+#define GAIN_REGLAGE 1
+#define PI 3.14159265358979323846
+#define MOVING_AVG_SIZE 10
+
+int seuillage(uint8_t *image, uint8_t *bw_image,
+              int width, int height);
+
+int choix_direction(uint8_t *bw_image,
+                    int width, int height);
+
+double add_to_moving_average(double value, double *buffer, int *index, int size);
+
+#endif

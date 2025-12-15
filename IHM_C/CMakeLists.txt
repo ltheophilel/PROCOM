@@ -37,6 +37,7 @@ add_subdirectory(lib/led)
 add_subdirectory(lib/oled)
 add_subdirectory(lib/wifi)
 add_subdirectory(lib/serial)
+add_subdirectory(lib/Moteur)
 
 # Add executable. Default name is the project name, version 0.1
 
@@ -70,6 +71,7 @@ target_link_libraries(IHM_C
         oled_lib
         wifi_lib
         serial_lib
+        moteur_lib
         )
 
 pico_add_extra_outputs(IHM_C)
