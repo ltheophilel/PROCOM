@@ -52,9 +52,9 @@ int choix_direction(uint8_t *bw_image, int width, int height)
                (n * (double)sum_x2 - (double)sum_x * (double)sum_x);
     double p = ((double)sum_y - m * (double)sum_x) / n;
 
-    printf("Équation de la droite : y = %.3fx + %.3f\n", m, p);
+    // printf("Équation de la droite : y = %.3fx + %.3f\n", m, p);
     double direction = GAIN_REGLAGE*m;
-    printf("Commande = %.3f\n", direction);
+    // printf("Commande = %.3f\n", direction);
     // return 0;
 
     // DECISION BINAIRE

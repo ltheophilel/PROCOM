@@ -2,6 +2,8 @@
 #include "../include/tcp_server.h"
 
 char *IP4ADDR = "0.0.0.0";
+uint8_t header[3]; // En-tête : [type(1), taille(2)]
+uint8_t buffer[BUF_SIZE + 3]; // Buffer pour données + en-tête
 
 static err_t on_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
@@ -62,8 +64,6 @@ size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buf, size_t maxlen) {
 
 err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
     if (!state->client_pcb) return ERR_CLSD;
-    uint8_t header[3]; // En-tête : [type(1), taille(2)]
-    uint8_t buffer[BUF_SIZE + 3]; // Buffer pour données + en-tête
 
     // Construire l'en-tête
     header[0] = type;
@@ -76,9 +76,9 @@ err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
     memcpy(buffer + 3, msg, chunk);
 
     err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
-    if (err == ERR_OK) {
-        tcp_output(state->client_pcb);
-    } 
+    // if (err == ERR_OK) {
+    tcp_output(state->client_pcb);
+    // } 
     return err;
 
     // return tcp_write(state->client_pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
@@ -89,8 +89,6 @@ err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
 
 err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
     size_t sent = 0;
-    uint8_t header[3]; // En-tête : [type(1), taille(2)]
-    uint8_t buffer[BUF_SIZE + 3]; // Buffer pour données + en-tête
 
     while (sent < len) {
         size_t chunk = len - sent;
@@ -119,15 +117,15 @@ err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
 
         // Envoyer le buffer
         err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
-        if (err == ERR_OK) {
-            sent += chunk;
-            tcp_output(state->client_pcb);
-        } else if (err == ERR_MEM) {
-            sleep_ms(1);
-            continue;
-        } else {
-            return err;
-        }
+        // if (err == ERR_OK) {
+        sent += chunk;
+        tcp_output(state->client_pcb);
+        // } else if (err == ERR_MEM) {
+        //     sleep_ms(1);
+        //     continue;
+        // } else {
+        //     return err;
+        // }
     }
     return ERR_OK;
 }

@@ -72,7 +72,6 @@ def receive_image(sock):
             data.extend(packet_data)
         elif packet_type == DATA_TYPE.MOT_0.value:
             rx_queue.put(f"M0 : {packet_data.decode('utf-8', errors='ignore').strip()}")
-            print(f"M0 : {packet_data.decode('utf-8', errors='ignore').strip()}")
             break
         elif packet_type == DATA_TYPE.MOT_1.value:
             rx_queue.put(f"M1 : {packet_data.decode('utf-8', errors='ignore').strip()}")
@@ -101,7 +100,7 @@ def tcp_thread():
                     continue
                 img = decode_bw_image(raw)
                 cv2.imwrite("static/images/cam.png", img)
-                print(f"[TCP] Image reçue et sauvegardée en {time.time() - temps_debut:.2f} secondes.")
+                # print(f"[TCP] Image reçue et sauvegardée en {time.time() - temps_debut:.2f} secondes.")
             elif packet_type in (DATA_TYPE.MOT_0.value, DATA_TYPE.MOT_1.value, DATA_TYPE.GENERAL.value):
                 pass
             # data = sock.recv(BUF_SIZE)
@@ -138,9 +137,9 @@ def read():
     if not rx_queue.empty():
         msgs = []
         all_msgs = {}
-        while not rx_queue.empty():
+        temps_debut = time.time()
+        while not rx_queue.empty() and time.time() - temps_debut < 2:
             msg = rx_queue.get()
-            print("[WEB] Message reçu :", msg)
             if msg.startswith("M0 :"): 
                 v_mot = msg.split("M0 :")[1].strip()
                 all_msgs["v_mot0"] = v_mot
@@ -148,6 +147,7 @@ def read():
                 v_mot = msg.split("M1 :")[1].strip()
                 all_msgs["v_mot1"] = v_mot
             else:
+                print("[WEB] Message reçu :", msg)
                 msgs.append(msg)
                 all_msgs["data"] = msgs
         return jsonify(all_msgs)
