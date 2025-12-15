@@ -50,15 +50,21 @@ int main()
 
         // Traitement
         int seuillage_out = seuillage(outbuf, bw_outbuf,
-                                    width, height);
-        int direction = choix_direction(bw_outbuf, width, height);
+                        width, height);
+        double angle = trouver_angle(bw_outbuf, width, height);
 
+        double command = GAIN_REGLAGE * angle;
 
-        // Affichage de la direction
-        printf("Direction: ");
-        if (direction == -1) {
+        //if (command > max_command) command = max_command;
+        //if (command < -max_command) command = -max_command;
+
+        // Affichage de l'angle et de la direction
+        printf("Commande = %.3f\n", command);
+        printf("Direction = ");
+
+        if (command < -1) {
             printf("Gauche\n");
-        } else if (direction == 1) {
+        } else if (command > 1) {
             printf("Droite\n");
         } else {
             printf("Tout droit\n");

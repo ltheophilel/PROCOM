@@ -19,4 +19,10 @@ int choix_direction(uint8_t *bw_image,
 
 double add_to_moving_average(double value, double *buffer, int *index, int size);
 
+// Nouvelle API : séparation calcul d'angle et choix de direction
+double trouver_angle(uint8_t *bw_image,
+                     int width, int height);
+
+int donner_direction(double angle);
+
 #endif
