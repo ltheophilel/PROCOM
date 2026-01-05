@@ -8,11 +8,17 @@
 #define I2C_SDA 26
 #define I2C_SCL 27
 
-static uint8_t *frame_buf[2] = {NULL, NULL}; // taille: WIDTH * HEIGHT * 2
-static uint8_t *out_buf[2] = {NULL, NULL}; // taille: WIDTH * HEIGHT
-static uint8_t *bw_buf[2] = {NULL, NULL}; // taille: WIDTH * HEIGHT
+#define MSG_PROCESSED_FLAG 0x80000000u
 
-static const uint16_t width, height;
+static uint8_t *frame_buffer[2] = {NULL, NULL}; // taille: WIDTH * HEIGHT * 2
+static uint8_t *outbuf[2] = {NULL, NULL}; // taille: WIDTH * HEIGHT
+static uint8_t *bw_outbuf[2] = {NULL, NULL}; // taille: WIDTH * HEIGHT
+
+static uint16_t width, height;
+
+static TCP_SERVER_T* state;
+static uint64_t t_us_current;
+static err_t err;
 
 void core1_entry(void);
 
@@ -56,8 +62,12 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     }
 }
 
-
-void core1()
+/*
+===============================================================
+                             CORE 1
+===============================================================
+*/
+void core1_entry()
 {
     while (true)
     {
@@ -68,36 +78,43 @@ void core1()
             // message de confirmation (non attendu ici) — on l'ignore
         }
 
+        uint32_t idx = msg & 1u; // choix du buffer
+
         // recopie des pointeurs buffers
-        uint8_t *frame_buffer_c1 = frame_buffer;
-        uint8_t *outbuf_c1 = outbuf;
-        uint8_t *bw_outbuf_c1 = bw_outbuf;
+        uint8_t *frame_buffer_c1 = frame_buffer[idx];
+        uint8_t *outbuf_c1 = outbuf[idx];
+        uint8_t *bw_outbuf_c1 = bw_outbuf[idx];
+
+        if (!frame_buffer_c1 || !outbuf_c1 || !bw_outbuf_c1)
+        {
+            // si quelque chose s'est mal passé, on signale une erreur
+            multicore_fifo_push_blocking(MSG_PROCESSED_FLAG | idx);
+            continue;
+        }
 
         // Extraire Y seulement
         for (int px = 0; px < width * height; px++)
-            outbuf[px] = frame_buffer[px * 2];
+            outbuf_c1[px] = frame_buffer_c1[px * 2];
 
         // Traitement
-        t_us_current = time_us_64();
-        int seuillage_out = seuillage(outbuf, bw_outbuf,
+        // t_us_current = time_us_64();
+        int seuillage_out = seuillage(outbuf_c1, bw_outbuf_c1,
                                       width, height);
-        // printf("Seuilage time (us): %llu\n", time_us_64() - t_us_current);
-        int direction = choix_direction(bw_outbuf, width, height);
-        // Envoi de l'image
-        // fwrite(outbuf, 1, width * height, stdout);
-        // fflush(stdout);
+        // printf("Seuillage time (us): %llu\n", time_us_64() - t_us_current);
+        int direction = choix_direction(bw_outbuf_c1, width, height);
 
-        err = tcp_send_large_img(state, outbuf_c1, width*height);
-        printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
-        if (err != ERR_OK)
-        {
-            printf("Erreur d'envoi de l'image : %d\n", err);
-        }
+        multicore_fifo_push_blocking(MSG_PROCESSED_FLAG | idx);
+        // "J'ai fini"
+
     }
 }
 
 // BUFF_SIZE défini dans tcp_server.h
-
+/*
+===============================================================
+                             CORE 0
+===============================================================
+*/
 int main() {
     stdio_init_all();
     sleep_ms(2000);
@@ -109,8 +126,8 @@ int main() {
         return 1;
     }
     pico_set_led(true);
-    
-    TCP_SERVER_T* state = tcp_server_start();
+
+    state = tcp_server_start();
 
 
     // Initialisation OLED
@@ -140,14 +157,13 @@ int main() {
     printf("Camera initialised\n");
 
     /* Creation Buffers Camera */
-    int creation_buffer_out = creation_buffers_camera(&frame_buffer, &outbuf,
-                           &bw_outbuf, width, height);
+    int creation_buffer_out = creation_buffers_camera(frame_buffer, outbuf,
+                           bw_outbuf, width, height);
 
     // Lancement du 2e coeur
     multicore_launch_core1(core1_entry);
-
-
-    err_t err;
+    bool use_ping = 1;
+    uint32_t idx = use_ping ? 0 : 1;
 
     while (true)
     {
@@ -174,28 +190,39 @@ int main() {
         //     // printf("hello\n");
         //     tcp_server_send(state, (const uint8_t *)"Hello, client!", 14);
         // }
-        uint64_t t_us_current = time_us_64();
 
-        camera_capture_blocking(&camera, frame_buffer, width, height);
+        t_us_current = time_us_64();
+
+        camera_capture_blocking(&camera, frame_buffer[idx], width, height);
         printf("Capture time (us): %llu\n", time_us_64() - t_us_current);
+
+        multicore_fifo_push_blocking(idx);// Debut traitement
+
         // Header P5 : format et dimensions de l'image
+        // fwrite(outbuf, 1, width * height, stdout);
+        // fflush(stdout);
         // printf("P5\n%d %d\n255\n", width, height);
 
-        
+        /*     Envoi de l'image     */
+
+        err = tcp_send_large_img(state, outbuf[idx], width*height);
+        printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
+        if (err != ERR_OK)
+        {
+            printf("Erreur d'envoi de l'image : %d\n", err);
+        }
+
+        uint32_t ack = multicore_fifo_pop_blocking();
+        use_ping = !use_ping; // On interchange les 2 buffers
+
         t_us_current = time_us_64();
-        
+
         // FPS max → pas de pause
         tight_loop_contents();
     }
-
+    // Jamais atteint
     // tcp_server_stop(state);
     pico_set_led(false);
     cyw43_arch_deinit();
-    free(frame_buffer);
-    free(outbuf);
-    free(bw_outbuf);
     return 0;
 }
-
-
-
