@@ -33,6 +33,7 @@ extern moteur_config moteur1;
 
 #define SPEED_PERIOD_MS     1000        // calcul de la vitesse toutes les 1 s
 #define ENC_COUNTS_PER_REV  318.0f      // TODO : remplacer par la valeur réelle de l’encodeur
+#define MAX_RPM 140.0f               // Vitesse maximale attendue (pour la table de lookup)
 
 // ----------------- VARIABLES GLOBALES -----------------
 
@@ -42,5 +43,7 @@ extern moteur_config moteur1;
 void init_motor_and_encoder(moteur_config *motor);
 void set_motor_encoder(moteur_config *motor, uint speed_period_ms);
 void motor_set_pwm(moteur_config *motor, float level);
+void motor_set_pwm_brut(moteur_config *motor, uint16_t level);
 void motor_set_direction(moteur_config *motor, bool direction);
 float motor_get_speed(moteur_config *motor);
+uint32_t pwm_lookup_for_rpm(float target_rpm);

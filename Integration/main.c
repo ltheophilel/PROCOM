@@ -6,7 +6,7 @@
 #define I2C_SDA 26
 #define I2C_SCL 27
 
-#define Vmax 40
+#define Vmax 60 // RPM max des moteurs
 
 static char  str_v_mot[32];
 
@@ -133,9 +133,14 @@ int main() {
         // double angle = trouver_angle(bw_outbuf, width, height);
         // int v_mot_droit = Vmax/2*(1+angle/90);
         // int v_mot_gauche = Vmax/2*(1-angle/90);
-
-        motor_set_pwm(&moteur0, 50+v_mot_droit/2);
-        motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
+        printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
+               angle, v_mot_droit, v_mot_gauche);
+        motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(v_mot_droit));
+        motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(v_mot_gauche));
+        printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
+               pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
+        // motor_set_pwm(&moteur0, 50+v_mot_droit/2);
+        // motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
         if (connect_success == ERR_OK) {
             snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
             tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);

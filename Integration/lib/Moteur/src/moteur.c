@@ -1,4 +1,5 @@
 #include "../include/moteur.h"
+#include "../include/pwm_lookup_table.h"
 
 
 moteur_config moteur0 = {
@@ -139,6 +140,11 @@ void motor_set_pwm(moteur_config *motor, float level) {
     pwm_set_gpio_level(motor->pin_EN, (uint16_t)(level*PWM_WRAP / 100.f));
 }
 
+// Ajuste le duty cycle (0 à PWM_WRAP)
+void motor_set_pwm_brut(moteur_config *motor, uint16_t level) {
+    pwm_set_gpio_level(motor->pin_EN, level);
+}
+
 void motor_set_direction(moteur_config *motor, bool direction) {
     gpio_put(motor->pin_DIR, direction);
 }
@@ -147,3 +153,35 @@ void motor_set_direction(moteur_config *motor, bool direction) {
 float motor_get_speed(moteur_config *motor) {
     return motor->motor_speed_rpm;
 };
+
+// Fast lookup using stored table (no sweep). Returns an estimated PWM level (0..PWM_WRAP).
+// This implementation finds the first table index j where speed[j] >= target, and interpolates
+// between j-1 and j. This is robust to leading zero values and non-strict monotonicity.
+uint32_t pwm_lookup_for_rpm(float target_rpm) {
+    // handle trivial bounds
+    if (target_rpm <= pwm_table_speed_abs[0]) return 0;
+    if (target_rpm >= pwm_table_speed_abs[PWM_TABLE_SIZE-1]) return PWM_WRAP;
+    // find first j such that speed[j] >= target_rpm
+    for (uint32_t j = 1; j < PWM_TABLE_SIZE; ++j) {
+        float b = pwm_table_speed_abs[j];
+        if (b >= target_rpm) {
+            uint32_t i = j - 1;
+            float a = pwm_table_speed_abs[i];
+            uint32_t l0 = (i == PWM_TABLE_SIZE-1) ? PWM_WRAP : (uint32_t)(i * 25);
+            uint32_t l1 = (j == PWM_TABLE_SIZE-1) ? PWM_WRAP : (uint32_t)(j * 25);
+            if (b == a) {
+                return l0;
+            }
+            float ratio = (target_rpm - a) / (b - a);
+            float est = (float)l0 + ratio * (float)(l1 - l0);
+            if (est < 0.0f) est = 0.0f;
+            if (est > (float)PWM_WRAP) est = (float)PWM_WRAP;
+            // printf("[Table] Interpolating between idx=%u(level=%u,spd=%.2f) and idx=%u(level=%u,spd=%.2f) -> est=%.1f\n",
+            //        i, l0, a, j, l1, b, est);
+            return (uint32_t)est;
+        }
+    }
+
+    // fallback: return last level
+    return PWM_WRAP;
+}
