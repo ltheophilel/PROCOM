@@ -56,4 +56,5 @@ TCP_SERVER_T* tcp_server_start(void);
 err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type);
 size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buffer, size_t max_len);
 err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len);
+err_t tcp_send_large_img_chunk(TCP_SERVER_T *state, const uint8_t *data, size_t len);
 #endif /* TCP_SERVER_H */

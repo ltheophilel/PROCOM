@@ -8,15 +8,13 @@ import logging
 import numpy as np
 from enum import Enum
 
-
-PICO_IP = "172.20.10.2"
+PICO_IP = "10.244.156.53"
 PICO_PORT = 4242
 
 WIDTH = 80
 HEIGHT = 60
 IMAGE_SIZE = WIDTH * HEIGHT  # 4800 octets
 BUF_SIZE = 1024
-HEADER_SIZE = 3
 
 sock = None
 sock_lock = threading.Lock()
@@ -29,9 +27,8 @@ data = bytearray()
 app = Flask(__name__)
 
 # Désactiver les logs de Werkzeug
-global log
 log = logging.getLogger('werkzeug')
-# log.setLevel(logging.ERROR)  # Ne montre que les erreurs
+
 
 class DATA_TYPE(Enum):
     START_IMG = 0
@@ -42,57 +39,49 @@ class DATA_TYPE(Enum):
     GENERAL = 5
 
 
+def recv_exact(sock, n):
+    """Lit exactement n octets depuis le socket"""
+    buf = bytearray()
+    while len(buf) < n:
+        part = sock.recv(n - len(buf))
+        if not part:
+            raise ConnectionError("Connexion fermée pendant recv_exact")
+        buf.extend(part)
+    return bytes(buf)
+
+
 def receive_image(sock):
-    global temps_debut, rx_queue, data
+    """
+    Lit une image chunkée depuis le Pico en TCP, en reconstruisant correctement
+    START_IMG / IMG / END_IMG. Retourne les données complètes et le type du dernier paquet.
+    """
+    data = bytearray()
+
     while True:
-        # print(f"[TCP] Réception des données… {len(data)}/{IMAGE_SIZE} octets reçus.")
-        header = sock.recv(3)
-        if not header:
-            raise ConnectionError("Connexion fermée")
-        
-        # Extraire le type et la taille du paquet
+        header = recv_exact(sock, 3)
         packet_type = header[0]
-        packet_size = (header[1] << 8) | header[2]  # Taille sur 2 octets (big-endian)
-        
-        # Lire les données du paquet
-        packet_data = sock.recv(packet_size)
-        if not packet_data or len(packet_data) != packet_size:
-            print(f"[TCP] Erreur de réception : attendu {packet_size} octets, reçu {len(packet_data) if packet_data else 0} octets.")
-            raise ConnectionError("Erreur lors de la réception des données")
-        # print(f"[TCP] Reçu {len(packet_data)} octets (type: {packet_type}, taille: {packet_size})")
-        # print(packet_type)
-        # Traiter le paquet en fonction de son type
-        if packet_type == DATA_TYPE.START_IMG.value:
-            data = bytearray()  # Réinitialiser les données pour une nouvelle image
-            data.extend(packet_data)
-        elif packet_type == DATA_TYPE.END_IMG.value:
-            data.extend(packet_data)
-            break  # Fin de l'image
-        elif packet_type == DATA_TYPE.IMG.value:
-            data.extend(packet_data)
-        elif packet_type == DATA_TYPE.MOT_0.value:
-            rx_queue.put(f"M0 : {packet_data.decode('utf-8', errors='ignore').strip()}")
-            break
-        elif packet_type == DATA_TYPE.MOT_1.value:
-            rx_queue.put(f"M1 : {packet_data.decode('utf-8', errors='ignore').strip()}")
-            break
-        else:
-            rx_queue.put(f"{packet_data.decode('utf-8', errors='ignore').strip()}")
-            break
-    return bytes(data), packet_type
+        packet_size = (header[1] << 8) | header[2]
+
+        chunk = recv_exact(sock, packet_size)
+        data.extend(chunk)
+
+        if packet_type == DATA_TYPE.END_IMG.value:
+            return bytes(data), DATA_TYPE.END_IMG.value
+        elif packet_type in (DATA_TYPE.MOT_0.value, DATA_TYPE.MOT_1.value, DATA_TYPE.GENERAL.value):
+            return chunk, packet_type
 
 
-def decode_bw_image(raw_bytes, width=80, height=60):
+def decode_bw_image(raw_bytes, width=WIDTH, height=HEIGHT):
     arr = np.frombuffer(raw_bytes, dtype=np.uint8)
     img = arr.reshape((height, width))  # format H×W
     return img
 
+
 def tcp_thread():
-    global sock, running, temps_debut, log
+    global sock, running
     print("[TCP] Thread démarré.")
     while running:
         try:
-            temps_debut = time.time()
             raw, packet_type = receive_image(sock)
             if packet_type == DATA_TYPE.END_IMG.value:
                 if len(raw) != IMAGE_SIZE:
@@ -100,17 +89,11 @@ def tcp_thread():
                     continue
                 img = decode_bw_image(raw)
                 cv2.imwrite("static/images/cam.png", img)
-                # print(f"[TCP] Image reçue et sauvegardée en {time.time() - temps_debut:.2f} secondes.")
             elif packet_type in (DATA_TYPE.MOT_0.value, DATA_TYPE.MOT_1.value, DATA_TYPE.GENERAL.value):
-                pass
-            # data = sock.recv(BUF_SIZE)
-            # text = data.decode("utf-8", errors="ignore").strip()
-            # rx_queue.put(text)
-
+                rx_queue.put(raw.decode("utf-8", errors='ignore').strip())
         except Exception as e:
             print("[TCP] Erreur:", e)
             time.sleep(1)
-
     print("[TCP] Thread terminé.")
 
 
@@ -123,10 +106,8 @@ def index():
 def send_cmd():
     cmd = request.json.get("command", "")
     print("[WEB] Envoi commande :", cmd)
-
     with sock_lock:
         sock.send((cmd + "\n").encode("utf-8"))
-
     return jsonify({"status": "ok"})
 
 
@@ -134,25 +115,19 @@ def send_cmd():
 def read():
     if not log.disabled:
         log.disabled = True
-    if not rx_queue.empty():
-        msgs = []
-        all_msgs = {}
-        temps_debut = time.time()
-        while not rx_queue.empty() and time.time() - temps_debut < 2:
-            msg = rx_queue.get()
-            if msg.startswith("M0 :"): 
-                v_mot = msg.split("M0 :")[1].strip()
-                all_msgs["v_mot0"] = v_mot
-            elif msg.startswith("M1 :"):
-                v_mot = msg.split("M1 :")[1].strip()
-                all_msgs["v_mot1"] = v_mot
-            else:
-                print("[WEB] Message reçu :", msg)
-                msgs.append(msg)
-                all_msgs["data"] = msgs
-        return jsonify(all_msgs)
-    return jsonify({"data": None})
-
+    all_msgs = {}
+    msgs = []
+    start_time = time.time()
+    while not rx_queue.empty() and time.time() - start_time < 2:
+        msg = rx_queue.get()
+        if msg.startswith("M0 :"):
+            all_msgs["v_mot0"] = msg.split("M0 :")[1].strip()
+        elif msg.startswith("M1 :"):
+            all_msgs["v_mot1"] = msg.split("M1 :")[1].strip()
+        else:
+            msgs.append(msg)
+    all_msgs["data"] = msgs if msgs else None
+    return jsonify(all_msgs)
 
 
 if __name__ == "__main__":
@@ -164,7 +139,7 @@ if __name__ == "__main__":
     sock.connect((PICO_IP, PICO_PORT))
     sock.settimeout(None)
     print("[TCP] Connecté au Pico.")
-    t = threading.Thread(target=tcp_thread)
+    t = threading.Thread(target=tcp_thread, daemon=True)
     t.start()
 
     # démarrage Flask
