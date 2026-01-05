@@ -58,6 +58,5 @@ dkms.conf
 build
 Moteur/moteur.py
 **/.vscode/*
-!**/.vscode/settings.json
 !**/.vscode/tasks.json
 !**/.vscode/launch.json
