@@ -2,8 +2,10 @@
 #include "../include/tcp_server.h"
 
 char *IP4ADDR = "0.0.0.0";
-uint8_t header[3]; // En-tête : [type(1), taille(2)]
-uint8_t buffer[BUF_SIZE + 3]; // Buffer pour données + en-tête
+static uint8_t header[3]; // En-tête : [type(1), taille(2)]
+static uint8_t buffer[BUF_SIZE + 3]; // Buffer pour données + en-tête
+static size_t sent = 0;
+static size_t chunk;
 
 static err_t on_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
@@ -21,7 +23,10 @@ static err_t on_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t 
     pbuf_copy_partial(p, state->buffer_recv + state->recv_len, len, 0);
     state->recv_len += len;
     tcp_recved(tpcb, p->tot_len);
-    pbuf_free(p);
+    if (p->ref == 1) {
+        pbuf_free(p);  // Libérer uniquement si c'est la dernière référence
+    }
+
 
     return ERR_OK;
 }
@@ -67,7 +72,7 @@ err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
 
     // Construire l'en-tête
     header[0] = type;
-    uint8_t chunk = strlen(msg);
+    chunk = strlen(msg);
     header[1] = (chunk >> 8) & 0xFF; // Octet haut de la taille
     header[2] = chunk & 0xFF;         // Octet bas de la taille
 
@@ -76,9 +81,13 @@ err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
     memcpy(buffer + 3, msg, chunk);
 
     err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
-    // if (err == ERR_OK) {
-    tcp_output(state->client_pcb);
-    // } 
+    if (err == ERR_OK) {
+        tcp_output(state->client_pcb);
+        while (state->client_pcb->unsent != NULL) {
+            sleep_ms(10); // Attendre 10ms entre chaque envoi
+        }
+
+    } 
     return err;
 
     // return tcp_write(state->client_pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
@@ -88,10 +97,10 @@ err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
 #include <string.h> // Pour memcpy
 
 err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
-    size_t sent = 0;
+    sent = 0;
 
     while (sent < len) {
-        size_t chunk = len - sent;
+        chunk = len - sent;
         if (chunk > BUF_SIZE) {
             chunk = BUF_SIZE;
         }
@@ -117,52 +126,21 @@ err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
 
         // Envoyer le buffer
         err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
-        // if (err == ERR_OK) {
-        sent += chunk;
-        tcp_output(state->client_pcb);
-        // } else if (err == ERR_MEM) {
-        //     sleep_ms(1);
-        //     continue;
-        // } else {
-        //     return err;
-        // }
+        if (err == ERR_OK) {
+            sent += chunk;
+            tcp_output(state->client_pcb);
+            while (state->client_pcb->unsent != NULL) {
+                sleep_ms(10); // Attendre 10ms entre chaque envoi
+            }
+
+        } else if (err == ERR_MEM) {
+            sleep_ms(1);
+            continue;
+        } else {
+            return err;
+        }
     }
+    printf("Sent: %d/%d, unsent: %d\n", sent, len, state->client_pcb->unsent ? 1 : 0);
     return ERR_OK;
 }
 
-
-
-
-// err_t tcp_send_large(TCP_SERVER_T *state, const char *data, size_t len) {
-//     size_t sent = 0;
-
-//     while (sent < len) {
-//         size_t chunk = len - sent;
-//         if (chunk > BUF_SIZE) chunk = BUF_SIZE;
-
-//         err_t err = tcp_write(state->client_pcb,
-//                               data + sent,
-//                               chunk,
-//                               TCP_WRITE_FLAG_COPY);
-
-//         if (err == ERR_OK) {
-//             // On avance le pointeur
-//             sent += chunk;
-
-//             // Envoie immédiat des segments
-//             tcp_output(state->client_pcb);
-
-//         } else if (err == ERR_MEM) {
-//             // Pas assez de place : on attend un peu
-//             // (lwIP va purger quand les ACK arrivent)
-//             sleep_ms(1);
-//             continue;
-
-//         } else {
-//             // Autre erreur = fatal
-//             return err;
-//         }
-//     }
-
-//     return ERR_OK;
-// }

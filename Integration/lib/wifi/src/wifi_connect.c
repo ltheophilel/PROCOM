@@ -18,6 +18,7 @@ err_t connect_to_wifi(const char *ssid, const char *password, const int timeout_
         return -1;
     } else {
         printf("Connected.\n");
+        cyw43_wifi_pm(&cyw43_state, CYW43_PERFORMANCE_PM & ~0xf);
         // pico_toggle_led();
     }
     return 0;
