@@ -20,6 +20,8 @@ static TCP_SERVER_T* state;
 static uint64_t t_us_current;
 static err_t err;
 
+struct camera camera;
+
 void core1_entry(void);
 
 
@@ -78,19 +80,23 @@ void core1_entry()
             // message de confirmation (non attendu ici) — on l'ignore
         }
 
-        uint32_t idx = msg & 1u; // choix du buffer
+        uint32_t current = msg & 1u; // choix du buffer
 
         // recopie des pointeurs buffers
-        uint8_t *frame_buffer_c1 = frame_buffer[idx];
-        uint8_t *outbuf_c1 = outbuf[idx];
-        uint8_t *bw_outbuf_c1 = bw_outbuf[idx];
+        uint8_t *frame_buffer_c1 = frame_buffer[current];
+        uint8_t *outbuf_c1 = outbuf[current];
+        uint8_t *bw_outbuf_c1 = bw_outbuf[current];
 
         if (!frame_buffer_c1 || !outbuf_c1 || !bw_outbuf_c1)
         {
             // si quelque chose s'est mal passé, on signale une erreur
-            multicore_fifo_push_blocking(MSG_PROCESSED_FLAG | idx);
+            multicore_fifo_push_blocking(MSG_PROCESSED_FLAG | current);
             continue;
         }
+        // t_us_current = time_us_64();
+
+        camera_capture_blocking(&camera, frame_buffer[current], width, height);
+        // printf("Capture time (us): %llu\n", time_us_64() - t_us_current);
 
         // Extraire Y seulement
         for (int px = 0; px < width * height; px++)
@@ -103,7 +109,7 @@ void core1_entry()
         // printf("Seuillage time (us): %llu\n", time_us_64() - t_us_current);
         int direction = choix_direction(bw_outbuf_c1, width, height);
 
-        multicore_fifo_push_blocking(MSG_PROCESSED_FLAG | idx);
+        multicore_fifo_push_blocking(MSG_PROCESSED_FLAG | current);
         // "J'ai fini"
 
     }
@@ -139,7 +145,7 @@ int main() {
 
     /* INITIALISATION CAMERA */
 
-    struct camera camera;
+
 
     init_camera();
     struct camera_platform_config platform = create_camera_platform_config();
@@ -163,7 +169,9 @@ int main() {
     // Lancement du 2e coeur
     multicore_launch_core1(core1_entry);
     bool use_ping = 1;
-    uint32_t idx = use_ping ? 0 : 1;
+    static bool first = true;
+    uint32_t current = 0;
+    uint32_t previous = 1;
 
     while (true)
     {
@@ -191,12 +199,7 @@ int main() {
         //     tcp_server_send(state, (const uint8_t *)"Hello, client!", 14);
         // }
 
-        t_us_current = time_us_64();
-
-        camera_capture_blocking(&camera, frame_buffer[idx], width, height);
-        printf("Capture time (us): %llu\n", time_us_64() - t_us_current);
-
-        multicore_fifo_push_blocking(idx);// Debut traitement
+        multicore_fifo_push_blocking(current); // Debut capture et traitement
 
         // Header P5 : format et dimensions de l'image
         // fwrite(outbuf, 1, width * height, stdout);
@@ -205,15 +208,20 @@ int main() {
 
         /*     Envoi de l'image     */
 
-        err = tcp_send_large_img(state, outbuf[idx], width*height);
-        printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
-        if (err != ERR_OK)
+        if (!first)
         {
-            printf("Erreur d'envoi de l'image : %d\n", err);
+            err = tcp_send_large_img(state, outbuf[previous], width*height);
+            // printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
+            if (err != ERR_OK)
+            {
+                printf("Erreur d'envoi de l'image : %d\n", err);
+            }
         }
 
         uint32_t ack = multicore_fifo_pop_blocking();
-        use_ping = !use_ping; // On interchange les 2 buffers
+        previous = current;
+        current ^= 1;
+        first = false; // On interchange les 2 buffers
 
         t_us_current = time_us_64();
 
