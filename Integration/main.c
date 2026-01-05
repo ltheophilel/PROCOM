@@ -6,6 +6,10 @@
 #define I2C_SDA 26
 #define I2C_SCL 27
 
+#define Vmax 100
+
+static char  str_v_mot[32];
+
 
 // Supprime les espaces en début et fin de chaîne
 char* trim_whitespace(char *line) {
@@ -79,12 +83,12 @@ int main() {
     motor_set_direction(&moteur1, 0);
     motor_set_pwm(&moteur0, 0.);
     motor_set_pwm(&moteur1, 0.);
-    sleep_ms(2000);
-    motor_set_pwm(&moteur0, 100.);
-    motor_set_pwm(&moteur1, 100.);
-    sleep_ms(2000);
-    motor_set_pwm(&moteur0, 0.);
-    motor_set_pwm(&moteur1, 0.);
+    // sleep_ms(2000);
+    // motor_set_pwm(&moteur0, 100.);
+    // motor_set_pwm(&moteur1, 100.);
+    // sleep_ms(2000);
+    // motor_set_pwm(&moteur0, 0.);
+    // motor_set_pwm(&moteur1, 0.);
     /* INITIALISATION CAMERA */
 
     struct camera camera;
@@ -105,7 +109,7 @@ int main() {
     printf("Camera initialised\n");
     motor_set_pwm(&moteur1, 0.);
     /* Creation Buffers Camera */
-    uint8_t *frame_buffer, *outbuf, *bw_outbuf;
+    static uint8_t *frame_buffer, *outbuf, *bw_outbuf;
     int creation_buffer_out = creation_buffers_camera(&frame_buffer, &outbuf,
                            &bw_outbuf, width, height);
 
@@ -151,36 +155,59 @@ int main() {
         t_us_current = time_us_64();
         int seuillage_out = seuillage(outbuf, bw_outbuf,
                                       width, height);
-        // printf("Seuilage time (us): %llu\n", time_us_64() - t_us_current);
-        int direction = choix_direction(bw_outbuf, width, height);
-        // Envoi de l'image
-        // fwrite(outbuf, 1, width * height, stdout);
-        // fflush(stdout);
-        t_us_current = time_us_64();
-        if (direction == 1) {
-            // interpretCommand(state, "TURN LEFT");
-            motor_set_pwm(&moteur0, 60.);
-            motor_set_pwm(&moteur1, 0.);
-            if (connect_success == ERR_OK) {
-                tcp_server_send(state, "60", PACKET_TYPE_MOT_0);
-                tcp_server_send(state, "0", PACKET_TYPE_MOT_1);
-            }
-        } else if (direction == -1) {
-            motor_set_pwm(&moteur1, 60.);
-            motor_set_pwm(&moteur0, 0.);
-            if (connect_success == ERR_OK) {
-                tcp_server_send(state, "0", PACKET_TYPE_MOT_0);
-                tcp_server_send(state, "60", PACKET_TYPE_MOT_1);
-            }
-        } else {
-            // interpretCommand(state, "FORWARD");
-            motor_set_pwm(&moteur0, 10.);
-            motor_set_pwm(&moteur1, 10.);
-            if (connect_success == ERR_OK) {
-                tcp_server_send(state, "10", PACKET_TYPE_MOT_0);
-                tcp_server_send(state, "10", PACKET_TYPE_MOT_1);
-            }
+
+        // double angle = PI*trouver_angle(bw_outbuf, width, height)/180;
+        // int v_mot_droit = (Vmax/2)*(1-cos(angle));
+        // int v_mot_gauche = (Vmax/2)*(1+cos(angle));
+
+        double angle = trouver_angle(bw_outbuf, width, height);
+        int v_mot_droit = Vmax/2*(1-angle/90);
+        int v_mot_gauche = Vmax/2*(1+angle/90);
+
+        motor_set_pwm(&moteur0, 50+v_mot_droit/4);
+        motor_set_pwm(&moteur1, 50+v_mot_gauche/4);
+        if (connect_success == ERR_OK) {
+            // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
+            // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
+            // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
+            // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_1);
+            snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
+            tcp_server_send(state, str_v_mot, PACKET_TYPE_GENERAL);
         }
+
+        // // printf("Seuilage time (us): %llu\n", time_us_64() - t_us_current);
+        // int direction = choix_direction_binaire(bw_outbuf, width, height);
+        // // Envoi de l'image
+        // // fwrite(outbuf, 1, width * height, stdout);
+        // // fflush(stdout);
+        // t_us_current = time_us_64();
+        // if (direction == 1) {
+        //     // interpretCommand(state, "TURN LEFT");
+        //     motor_set_pwm(&moteur0, 60.);
+        //     motor_set_pwm(&moteur1, 0.);
+        //     if (connect_success == ERR_OK) {
+        //         tcp_server_send(state, "60", PACKET_TYPE_MOT_0);
+        //         tcp_server_send(state, "0", PACKET_TYPE_MOT_1);
+        //     }
+        // } else if (direction == -1) {
+        //     motor_set_pwm(&moteur1, 60.);
+        //     motor_set_pwm(&moteur0, 0.);
+        //     if (connect_success == ERR_OK) {
+        //         tcp_server_send(state, "0", PACKET_TYPE_MOT_0);
+        //         tcp_server_send(state, "60", PACKET_TYPE_MOT_1);
+        //     }
+        // } else {
+        //     // interpretCommand(state, "FORWARD");
+        //     motor_set_pwm(&moteur0, 10.);
+        //     motor_set_pwm(&moteur1, 10.);
+        //     if (connect_success == ERR_OK) {
+        //         tcp_server_send(state, "10", PACKET_TYPE_MOT_0);
+        //         tcp_server_send(state, "10", PACKET_TYPE_MOT_1);
+        //     }
+        // }
+
+
+
         if (connect_success == ERR_OK) {
             err = tcp_send_large_img(state, outbuf, width*height);
             printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
