@@ -79,12 +79,12 @@ int main() {
     motor_set_direction(&moteur1, 0);
     motor_set_pwm(&moteur0, 0.);
     motor_set_pwm(&moteur1, 0.);
-    sleep_ms(2000);
-    motor_set_pwm(&moteur0, 100.);
-    motor_set_pwm(&moteur1, 100.);
-    sleep_ms(2000);
-    motor_set_pwm(&moteur0, 0.);
-    motor_set_pwm(&moteur1, 0.);
+    // sleep_ms(2000);
+    // motor_set_pwm(&moteur0, 100.);
+    // motor_set_pwm(&moteur1, 100.);
+    // sleep_ms(2000);
+    // motor_set_pwm(&moteur0, 0.);
+    // motor_set_pwm(&moteur1, 0.);
     /* INITIALISATION CAMERA */
 
     struct camera camera;

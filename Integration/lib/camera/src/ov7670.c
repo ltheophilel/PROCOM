@@ -401,7 +401,7 @@ void OV7670_night(void *platform, OV7670_night_mode night) {
   // Read current COM11 register setting so unrelated bits aren't corrupted
   uint8_t com11 = OV7670_read_register(platform, OV7670_REG_COM11);
   com11 &= 0b00011111;        // Clear night mode bits
-  com11 |= night_bits[night]; // Set night bits for desired mode
+  com11 |= night_bits[(OV7670_night_mode) 0]; // Set night bits for desired mode
   // Write modified result back to COM11 register
   OV7670_write_register(platform, OV7670_REG_COM11, com11);
 }
