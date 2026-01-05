@@ -40,6 +40,7 @@ add_subdirectory(lib/serial)
 add_subdirectory(lib/Moteur)
 add_subdirectory(lib/camera)
 add_subdirectory(lib/traitement_image)
+add_subdirectory(lib/divers)
 
 # Add executable. Default name is the project name, version 0.1
 
@@ -77,6 +78,7 @@ target_link_libraries(DEMO
         moteur_lib
         camera_lib
         traitement_lib
+        divers_lib
         )
 
 pico_add_extra_outputs(DEMO)

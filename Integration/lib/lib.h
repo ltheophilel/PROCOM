@@ -18,3 +18,5 @@
 
 #include "traitement_image/include/traitement.h"
 
+#include "divers/include/divers.h"
+

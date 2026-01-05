@@ -104,8 +104,8 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
         {
             if (bw_image[row*width+col] == 0)
             {
-                int x = row;
-                int y = col;
+                int x = height - row;
+                int y = col - width/2;
                 sum_x += x;
                 sum_y += y;
                 sum_xy += x * y;
@@ -131,7 +131,7 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
     double m = (n * sum_xy - sum_x * sum_y) / denom;
     double p = (sum_y - m * sum_x) / (double)n;
 
-    // printf("Équation de la droite : y = %.6fx + %.6f\n", m, p);
+    printf("Équation de la droite : y = %.6fx + %.6f\n", m, p);
 
 
     double angle = atan((m*PROFONDEUR+p)/PROFONDEUR) * (180.0 / PI);
@@ -139,7 +139,7 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
     // printf("Angle brut = %.3f degrés\n", angle);
 
     double angle_avg = add_to_moving_average(angle, angle_buffer, &angle_index, MOVING_AVG_SIZE);
-    printf("Angle lissé = %.3f degrés\n", angle_avg);
+    // printf("Angle lissé = %.3f degrés\n", angle_avg);
 
     return angle_avg;
 }

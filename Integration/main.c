@@ -11,28 +11,11 @@
 static char  str_v_mot[32];
 
 
-// Supprime les espaces en début et fin de chaîne
-char* trim_whitespace(char *line) {
-    char *s = line;
-    while (*s && (*s == ' ' || *s == '\t')) s++;
-    char *end = s + strlen(s) - 1;
-    while (end >= s && (*end == ' ' || *end == '\t' || *end == '\0' || *end == '\n' || *end == '\r')) {
-        *end = '\0';
-        end--;
-    }
-    return s;
-}
 
-int estNombreEntier(const char *s) {
-    char *end;
-    long val = strtol(s, &end, 10);
-    // Vérifie si la conversion a consommé toute la chaîne et qu'il n'y a pas eu d'erreur
-    return (*end == '\0' && s != end);
-}
 
 void interpretCommand(TCP_SERVER_T *state, const char* command) {
     // Implémentez ici l'interprétation des commandes reçues
-    command = trim_whitespace((char *)command);
+    command = trim_whitespace_divers((char *)command);
     printf("Interpreted Command: '%s'\n", command);
     if (strcmp(command, "LED ON") == 0) {
         pico_set_led(true);
@@ -60,7 +43,7 @@ int main() {
     err_t connect_success = wifi_auto_connect();
     if (connect_success != ERR_OK) {
         printf("Échec de la connexion Wi-Fi.\n");
-        pico_blink_led(10, 200); // Clignote rapidement pour indiquer l'erreur
+        pico_blink_led(10, 100); // Clignote rapidement pour indiquer l'erreur
         pico_set_led(false); 
         // return 1;
     } else pico_set_led(true); 
@@ -83,12 +66,6 @@ int main() {
     motor_set_direction(&moteur1, 0);
     motor_set_pwm(&moteur0, 0.);
     motor_set_pwm(&moteur1, 0.);
-    // sleep_ms(2000);
-    // motor_set_pwm(&moteur0, 100.);
-    // motor_set_pwm(&moteur1, 100.);
-    // sleep_ms(2000);
-    // motor_set_pwm(&moteur0, 0.);
-    // motor_set_pwm(&moteur1, 0.);
     /* INITIALISATION CAMERA */
 
     struct camera camera;
@@ -134,13 +111,6 @@ int main() {
             sleep_ms(100);
         }
         
-        // uint64_t t_us_current = time_us_64();
-        // if (t_us_current - t_us_previous >= 1000000) { // 1 second
-        //     t_us_previous = t_us_current;
-        //     pico_toggle_led();
-        //     // printf("hello\n");
-        //     tcp_server_send(state, (const uint8_t *)"Hello, client!", 14);
-        // }
         uint64_t t_us_current = time_us_64();
         camera_capture_blocking(&camera, frame_buffer, width, height);
         printf("Capture time (us): %llu\n", time_us_64() - t_us_current);
@@ -167,45 +137,13 @@ int main() {
         motor_set_pwm(&moteur0, 50+v_mot_droit/2);
         motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
         if (connect_success == ERR_OK) {
-            // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
-            // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
-            // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
-            // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_1);
+            snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
+            tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
+            snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
+            tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_1);
             snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
             tcp_server_send(state, str_v_mot, PACKET_TYPE_GENERAL);
         }
-
-        // // printf("Seuilage time (us): %llu\n", time_us_64() - t_us_current);
-        // int direction = choix_direction_binaire(bw_outbuf, width, height);
-        // // Envoi de l'image
-        // // fwrite(outbuf, 1, width * height, stdout);
-        // // fflush(stdout);
-        // t_us_current = time_us_64();
-        // if (direction == 1) {
-        //     // interpretCommand(state, "TURN LEFT");
-        //     motor_set_pwm(&moteur0, 60.);
-        //     motor_set_pwm(&moteur1, 0.);
-        //     if (connect_success == ERR_OK) {
-        //         tcp_server_send(state, "60", PACKET_TYPE_MOT_0);
-        //         tcp_server_send(state, "0", PACKET_TYPE_MOT_1);
-        //     }
-        // } else if (direction == -1) {
-        //     motor_set_pwm(&moteur1, 60.);
-        //     motor_set_pwm(&moteur0, 0.);
-        //     if (connect_success == ERR_OK) {
-        //         tcp_server_send(state, "0", PACKET_TYPE_MOT_0);
-        //         tcp_server_send(state, "60", PACKET_TYPE_MOT_1);
-        //     }
-        // } else {
-        //     // interpretCommand(state, "FORWARD");
-        //     motor_set_pwm(&moteur0, 10.);
-        //     motor_set_pwm(&moteur1, 10.);
-        //     if (connect_success == ERR_OK) {
-        //         tcp_server_send(state, "10", PACKET_TYPE_MOT_0);
-        //         tcp_server_send(state, "10", PACKET_TYPE_MOT_1);
-        //     }
-        // }
-
 
 
         if (connect_success == ERR_OK) {
