@@ -6,7 +6,7 @@
 #define I2C_SDA 26
 #define I2C_SCL 27
 
-#define Vmax 100
+#define Vmax 40
 
 static char  str_v_mot[32];
 
@@ -156,16 +156,16 @@ int main() {
         int seuillage_out = seuillage(outbuf, bw_outbuf,
                                       width, height);
 
-        // double angle = PI*trouver_angle(bw_outbuf, width, height)/180;
-        // int v_mot_droit = (Vmax/2)*(1-cos(angle));
-        // int v_mot_gauche = (Vmax/2)*(1+cos(angle));
+        double angle = PI*trouver_angle(bw_outbuf, width, height)/180;
+        int v_mot_droit = (Vmax/2)*(1+sin(angle));
+        int v_mot_gauche = (Vmax/2)*(1-sin(angle));
 
-        double angle = trouver_angle(bw_outbuf, width, height);
-        int v_mot_droit = Vmax/2*(1-angle/90);
-        int v_mot_gauche = Vmax/2*(1+angle/90);
+        // double angle = trouver_angle(bw_outbuf, width, height);
+        // int v_mot_droit = Vmax/2*(1+angle/90);
+        // int v_mot_gauche = Vmax/2*(1-angle/90);
 
-        motor_set_pwm(&moteur0, 50+v_mot_droit/4);
-        motor_set_pwm(&moteur1, 50+v_mot_gauche/4);
+        motor_set_pwm(&moteur0, 50+v_mot_droit/2);
+        motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
         if (connect_success == ERR_OK) {
             // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
             // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
