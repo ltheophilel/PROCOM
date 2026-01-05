@@ -181,6 +181,9 @@ int main() {
                 tcp_server_send(state, "10", PACKET_TYPE_MOT_1);
             }
         }
+
+
+
         if (connect_success == ERR_OK) {
             err = tcp_send_large_img(state, outbuf, width*height);
             printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);

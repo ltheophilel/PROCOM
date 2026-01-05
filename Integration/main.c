@@ -8,6 +8,8 @@
 
 #define Vmax 100
 
+static char  str_v_mot[32];
+
 
 // Supprime les espaces en début et fin de chaîne
 char* trim_whitespace(char *line) {
@@ -154,15 +156,23 @@ int main() {
         int seuillage_out = seuillage(outbuf, bw_outbuf,
                                       width, height);
 
-        int angle = get_angle_direction();
-        int v_mot_droit = (Vmax/2)*(1-cos(angle));
-        int v_mot_gauche = (Vmax/2)*(1+cos(angle));
+        // double angle = PI*trouver_angle(bw_outbuf, width, height)/180;
+        // int v_mot_droit = (Vmax/2)*(1-cos(angle));
+        // int v_mot_gauche = (Vmax/2)*(1+cos(angle));
 
-        motor_set_pwm(&moteur0, v_mot_droit);
-        motor_set_pwm(&moteur1, v_mot_gauche);
+        double angle = trouver_angle(bw_outbuf, width, height);
+        int v_mot_droit = Vmax/2*(1-angle/90);
+        int v_mot_gauche = Vmax/2*(1+angle/90);
+
+        motor_set_pwm(&moteur0, 50+v_mot_droit/4);
+        motor_set_pwm(&moteur1, 50+v_mot_gauche/4);
         if (connect_success == ERR_OK) {
-            tcp_server_send(state, sprintf(v_mot_droit), PACKET_TYPE_MOT_0);
-            tcp_server_send(state, sprintf(v_mot_gauche), PACKET_TYPE_MOT_1);
+            // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
+            // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
+            // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
+            // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_1);
+            snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
+            tcp_server_send(state, str_v_mot, PACKET_TYPE_GENERAL);
         }
 
         // // printf("Seuilage time (us): %llu\n", time_us_64() - t_us_current);
