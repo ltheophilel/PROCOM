@@ -165,61 +165,66 @@ int main() {
 
     // Lancement du 2e coeur
     multicore_launch_core1(core1_entry);
-    // Variables ping-pong
     bool use_ping = 1;
     static bool first = true;
     uint32_t current = 0;
     uint32_t previous = 1;
-
-    // Taille du fragment TCP (choisir 1024 octets)
-    #define TCP_CHUNK_SIZE 1024
 
     while (true)
     {
         #if PICO_CYW43_ARCH_POLL
             cyw43_arch_poll();
         #endif
-
         int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
+
         if (received > 0) {
+            // Ajouter un '\0' pour créer une chaîne C
             rx_buffer[received] = '\0';
+
             printf("Reçu du client : %s\n", rx_buffer);
+
+            // Réponse simple : renvoyer exactement ce qu'on a reçu
             interpretCommand(state, (const char *)rx_buffer);
         }
-
         sleep_ms(100);
+        
+        // uint64_t t_us_current = time_us_64();
+        // if (t_us_current - t_us_previous >= 1000000) { // 1 second
+        //     t_us_previous = t_us_current;
+        //     pico_toggle_led();
+        //     // printf("hello\n");
+        //     tcp_server_send(state, (const uint8_t *)"Hello, client!", 14);
+        // }
 
-        // Demande à core1 de capturer et traiter le buffer courant
-        multicore_fifo_push_blocking(current);
+        multicore_fifo_push_blocking(current); // Debut capture et traitement
 
-        // Envoi de l'image précédente seulement si elle existe
+        // Header P5 : format et dimensions de l'image
+        // fwrite(outbuf, 1, width * height, stdout);
+        // fflush(stdout);
+        // printf("P5\n%d %d\n255\n", width, height);
+
+        /*     Envoi de l'image     */
+
         if (!first)
         {
-            // Fragmentation TCP pour éviter invalid PCB
-            for (uint32_t offset = 0; offset < width*height; offset += TCP_CHUNK_SIZE)
+            err = tcp_send_large_img(state, outbuf[previous], width*height);
+            // printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
+            if (err != ERR_OK)
             {
-                uint32_t chunk = (width*height - offset < TCP_CHUNK_SIZE) ?
-                                (width*height - offset) : TCP_CHUNK_SIZE;
-
-                err = tcp_send_large_img_chunk(state, outbuf[previous] + offset, chunk);
-                if (err != ERR_OK) {
-                    printf("Erreur d'envoi TCP fragment : %d\n", err);
-                    break;
-                }
+                printf("Erreur d'envoi de l'image : %d\n", err);
             }
         }
 
-        // Attente de la fin de traitement du buffer courant
         uint32_t ack = multicore_fifo_pop_blocking();
-
-        // Swap ping/pong
         previous = current;
         current ^= 1;
-        first = false;
+        first = false; // On interchange les 2 buffers
 
+        t_us_current = time_us_64();
+
+        // FPS max → pas de pause
         tight_loop_contents();
     }
-
     // Jamais atteint
     // tcp_server_stop(state);
     pico_set_led(false);

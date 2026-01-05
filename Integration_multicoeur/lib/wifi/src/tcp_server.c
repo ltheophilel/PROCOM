@@ -131,6 +131,54 @@ err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
 }
 
 
+// Envoie un morceau de l'image avec header
+err_t tcp_send_large_img_chunk(TCP_SERVER_T *state, const uint8_t *data, size_t len) {
+    size_t sent = 0;
+    uint8_t buffer[BUF_SIZE + 3];  // +3 pour l'en-tête
+    uint8_t header[3];
+
+    while (sent < len) {
+        size_t chunk = len - sent;
+        if (chunk > BUF_SIZE) chunk = BUF_SIZE;
+
+        // Choix du type de paquet
+        uint8_t packet_type;
+        if (sent == 0) packet_type = PACKET_TYPE_START_IMG;
+        else if (sent + chunk >= len) packet_type = PACKET_TYPE_END_IMG;
+        else packet_type = PACKET_TYPE_IMG;
+
+        // Construire header
+        header[0] = packet_type;
+        header[1] = (chunk >> 8) & 0xFF;
+        header[2] = chunk & 0xFF;
+
+        memcpy(buffer, header, 3);
+        memcpy(buffer + 3, data + sent, chunk);
+
+        // Loop until tcp_write succeeds
+        err_t err;
+        do {
+            err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
+            if (err == ERR_MEM) {
+                // lwIP ne peut pas bufferiser, attendre un peu
+                sleep_ms(1);
+            } else if (err != ERR_OK) {
+                return err;
+            }
+        } while (err == ERR_MEM);
+
+        sent += chunk;
+
+        // Forcer l'envoi
+        tcp_output(state->client_pcb);
+    }
+
+    return ERR_OK;
+}
+
+
+
+
 
 
 // err_t tcp_send_large(TCP_SERVER_T *state, const char *data, size_t len) {

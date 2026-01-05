@@ -44,8 +44,8 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
         {
             if (bw_image[row*width+col] == 0)
             {
-                int x = row;
-                int y = col;
+                int x = height - row;
+                int y = col - width / 2; // Centering y around 0
                 sum_x += x;
                 sum_y += y;
                 sum_xy += x * y;
