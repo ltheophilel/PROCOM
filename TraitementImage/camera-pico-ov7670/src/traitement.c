@@ -61,12 +61,21 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
         return 0.0; // no reliable angle
     }
 
-    double m = -(n * (double)sum_xy - (double)sum_x * (double)sum_y) /
-               (n * (double)sum_x2 - (double)sum_x * (double)sum_x);
-    double p = ((double)sum_y - m * (double)sum_x) / n;
+    double denom = (n * sum_x2 - sum_x * sum_x);
+    if (fabs(denom) < 1e-9)
+    {
+        fprintf(stderr, "Denominateur nul dans calcul de pente.\n");
+        return 0.0;
+    }
 
-    printf("Équation de la droite : y = %.3fx + %.3f\n", m, p);
-    double angle = atan(m) * (180.0 / PI);
+    double m = (n * sum_xy - sum_x * sum_y) / denom;
+    double p = (sum_y - m * sum_x) / (double)n;
+
+    printf("Équation de la droite : y = %.6fx + %.6f\n", m, p);
+
+
+    double angle = atan((m*PROFONDEUR+p)/PROFONDEUR) * (180.0 / PI);
+    // double angle = atan(m) * (180.0 / PI);
     printf("Angle brut = %.3f degrés\n", angle);
 
     double angle_avg = add_to_moving_average(angle, angle_buffer, &angle_index, MOVING_AVG_SIZE);

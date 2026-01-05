@@ -9,7 +9,8 @@
 
 #define GAIN_REGLAGE 1
 #define PI 3.14159265358979323846
-#define MOVING_AVG_SIZE 10
+#define MOVING_AVG_SIZE 20
+#define PROFONDEUR 400  // Distance en pixel pour le calcul de l'angle
 
 int seuillage(uint8_t *image, uint8_t *bw_image,
               int width, int height);
