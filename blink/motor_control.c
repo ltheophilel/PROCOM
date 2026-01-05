@@ -136,6 +136,7 @@
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
 #include "tusb.h" // tinyusb status checks (tud_cdc_connected)
+#include "pwm_lookup_table.h" // measured PWM -> RPM table
 
 // ----------------- DÉFINITION DES BROCCHES -----------------
 
@@ -167,6 +168,7 @@
 volatile int32_t motor_position   = 0;   // position en comptages
 volatile int32_t last_position    = 0;   // position à la dernière mesure
 volatile float   motor_speed_rpm  = 0.0f;
+static volatile uint16_t last_pwm_set = 0; // last duty set via motor_set_duty (for diagnostics)
 volatile bool    menu_active      = false; // true quand on attend une saisie au menu (évite d'afficher les logs)
 volatile bool    speed_updated    = false; // true quand un nouveau calcul de vitesse est disponible
 volatile bool    operation_active = false; // true pendant un balayage/une recherche (évite d'afficher les logs)
@@ -177,6 +179,11 @@ void encoder_isr(uint gpio, uint32_t events);
 bool speed_timer_cb(repeating_timer_t *t);
 void motor_pwm_init(uint gpio_en);
 void motor_set_duty(uint gpio_en, uint16_t level);
+
+// Exports
+static void pwm_export_table_as_header(uint32_t step, uint32_t target_level, uint32_t pause_ms);
+static uint32_t pwm_refine_estimate(float target_rpm, uint32_t est, uint32_t delta, uint32_t pause_ms);
+static uint32_t pwm_lookup_for_rpm(float target_rpm);
 
 // ----------------- ISR DE L'ENCODEUR -----------------
 // Appelé à chaque front montant sur ENC_SA
@@ -239,6 +246,7 @@ void motor_pwm_init(uint gpio_en) {
 void motor_set_duty(uint gpio_en, uint16_t level) {
     if (level > PWM_WRAP) level = PWM_WRAP;
     pwm_set_gpio_level(gpio_en, level);
+    last_pwm_set = (uint16_t)level;
 }
 
 // Read an integer from serial input (non-blocking with timeout; returns -1 on timeout/cancel)
@@ -337,8 +345,9 @@ static void show_menu(void) {
     printf("1. Balayage complet PWM (0 -> 6249)\n");
     printf("2. Trouver PWM pour une vitesse cible\n");
     printf("3. Quitter (arreter moteur)\n");
+    printf("4. Balayage & Exporter tableau (imprime header C sur la série)\n");
     printf("========================================\n");
-    printf("Choisissez [1-3] : (Tapez le numéro puis ENTER — si rien, attendez 20s pour annuler) ");
+    printf("Choisissez [1-4] : (Tapez le numéro puis ENTER — si rien, attendez 20s pour annuler) ");
 }
 
 // Wait for user to press ENTER (timeout_ms ms). Returns true if ENTER pressed, false on timeout.
@@ -370,6 +379,7 @@ static void pwm_sweep_record(uint32_t step, uint32_t target_level, uint32_t paus
     if (max_steps > 1000) max_steps = 1000;
 
     float *speeds = malloc(sizeof(float) * max_steps);
+    float *speeds_signed = malloc(sizeof(float) * max_steps);
     int32_t *positions = malloc(sizeof(int32_t) * max_steps);
     uint32_t *levels = malloc(sizeof(uint32_t) * max_steps);
     if (!speeds || !positions || !levels) {
@@ -387,16 +397,20 @@ static void pwm_sweep_record(uint32_t step, uint32_t target_level, uint32_t paus
     while (true) {
         if (count >= max_steps) break;
         motor_set_duty(PIN_EN, (uint16_t)level);
+        // Debug: report applied PWM and direction immediately
+        printf("[Sweep] Applied Level=%u (last_pwm_set=%u) DIR=%d\n", level, last_pwm_set, gpio_get(PIN_DIR));
+        fflush(stdout);
 
         // attend la période demandée pour que le timer calcule la vitesse
         sleep_ms(pause_ms);
 
         // récupère la vitesse calculée par le timer (RPM) et la position
         float measured_signed = motor_speed_rpm;
-        float measured = fabsf(measured_signed); // use absolute speed for analysis
+        float measured = fabsf(measured_signed); // absolute for table
         int32_t pos_snapshot = motor_position;
 
         speeds[count] = measured;
+        speeds_signed[count] = measured_signed;
         positions[count] = pos_snapshot;
         levels[count] = level;
         printf("[Sweep] idx=%u Level=%u Pos=%ld Vitesse=%.2f RPM (signed %.2f)\n", count, level, (long)pos_snapshot, measured, measured_signed);
@@ -413,6 +427,9 @@ static void pwm_sweep_record(uint32_t step, uint32_t target_level, uint32_t paus
         printf("%u, %u, %ld, %.2f\n", i, levels[i], (long)positions[i], speeds[i]);
     }
 
+    // Free temp arrays used for sweep
+    if (speeds_signed) free(speeds_signed);
+
     // Pause pour laisser le temps de lire les résultats
     wait_for_enter(30000);
 
@@ -422,6 +439,69 @@ static void pwm_sweep_record(uint32_t step, uint32_t target_level, uint32_t paus
 
     operation_active = false;
 }
+
+// Perform sweep and print header block to serial (copy/paste to pwm_lookup_table.h)
+static void pwm_export_table_as_header(uint32_t step, uint32_t target_level, uint32_t pause_ms) {
+    printf("--- PWM LOOKUP TABLE EXPORT START ---\n");
+    printf("// Generated PWM lookup table (levels step %u)\n", step);
+
+    // Do a sweep but store signed and abs speeds
+    uint32_t max_steps = (target_level / (step ? step : 1)) + 5;
+    if (max_steps < 16) max_steps = 16;
+    if (max_steps > 1000) max_steps = 1000;
+
+    float *speeds_abs = malloc(sizeof(float) * max_steps);
+    float *speeds_signed = malloc(sizeof(float) * max_steps);
+    uint32_t *levels = malloc(sizeof(uint32_t) * max_steps);
+
+    if (!speeds_abs || !speeds_signed || !levels) {
+        printf("Erreur allocation memoire pour export\n");
+        free(speeds_abs); free(speeds_signed); free(levels);
+        return;
+    }
+
+    uint32_t count = 0;
+    uint32_t level = 0;
+    while (true) {
+        if (count >= max_steps) break;
+        motor_set_duty(PIN_EN, (uint16_t)level);
+        printf("[Finder] Applied Level=%u (last_pwm_set=%u) DIR=%d\n", level, last_pwm_set, gpio_get(PIN_DIR));
+        fflush(stdout);
+        sleep_ms(pause_ms);
+        float signed_v = motor_speed_rpm;
+        float abs_v = fabsf(signed_v);
+        speeds_abs[count] = abs_v;
+        speeds_signed[count] = signed_v;
+        levels[count] = level;
+        printf("[Finder] idx=%u Level=%u Vitesse=%.2f RPM (signed %.2f)\n", count, level, abs_v, signed_v);
+        count++;
+        if (level >= target_level) break;
+        level += step;
+        if (level > PWM_WRAP) level = PWM_WRAP;
+    }
+
+    // Print header style arrays
+    printf("\n// BEGIN GENERATED pwm_lookup_table.h\n");
+    printf("#ifndef PWM_LOOKUP_TABLE_H\n#define PWM_LOOKUP_TABLE_H\n\n");
+    printf("#include <stdint.h>\n\n#define PWM_TABLE_SIZE %u\n\n", count);
+
+    printf("static const float pwm_table_speed_abs[PWM_TABLE_SIZE] = {\n");
+    for (uint32_t i = 0; i < count; ++i) {
+        printf("    %.2ff,%s", speeds_abs[i], (i + 1) % 8 == 0 ? "\n" : " ");
+    }
+    printf("\n};\n\n");
+
+    printf("static const float pwm_table_speed_signed[PWM_TABLE_SIZE] = {\n");
+    for (uint32_t i = 0; i < count; ++i) {
+        printf("    %.2ff,%s", speeds_signed[i], (i + 1) % 8 == 0 ? "\n" : " ");
+    }
+    printf("\n};\n\n#endif // PWM_LOOKUP_TABLE_H\n");
+
+    printf("// END GENERATED pwm_lookup_table.h\n");
+
+    free(speeds_abs); free(speeds_signed); free(levels);
+}
+
 
 // Find PWM level for a desired target RPM using a linear interpolation
 // between measured points from a sweep with step 'step'.
@@ -524,7 +604,6 @@ static uint32_t pwm_find_for_rpm(float target_rpm, uint32_t step, uint32_t targe
             printf("Interpolated level=%.1f from [%u:%.2f] - [%u:%.2f]\n", est, l0, s0, l1, s1);
         }
     }
-
     // Verify by setting estimated level and measuring
     motor_set_duty(PIN_EN, (uint16_t)estimated_level);
     sleep_ms(pause_ms);
@@ -535,6 +614,81 @@ static uint32_t pwm_find_for_rpm(float target_rpm, uint32_t step, uint32_t targe
     free(speeds);
     free(levels);
     return estimated_level;
+}
+
+// Fast lookup using stored table (no sweep). Returns an estimated PWM level (0..PWM_WRAP).
+// This implementation finds the first table index j where speed[j] >= target, and interpolates
+// between j-1 and j. This is robust to leading zero values and non-strict monotonicity.
+static uint32_t pwm_lookup_for_rpm(float target_rpm) {
+    // handle trivial bounds
+    printf("Max speed in table: %.2f\n", pwm_table_speed_abs[PWM_TABLE_SIZE-1]);
+    if (target_rpm <= pwm_table_speed_abs[0]) return 0;
+    if (target_rpm >= pwm_table_speed_abs[PWM_TABLE_SIZE-1]) return PWM_WRAP;
+    printf("[Table] Looking up target RPM=%.2f\n", target_rpm);
+    // find first j such that speed[j] >= target_rpm
+    for (uint32_t j = 1; j < PWM_TABLE_SIZE; ++j) {
+        float b = pwm_table_speed_abs[j];
+        printf("[Table] idx=%u speed=%.2f\n", j, b);
+        if (b >= target_rpm) {
+            printf("[Table] Found bracketing index j=%u speed=%.2f\n", j, b);
+            uint32_t i = j - 1;
+            float a = pwm_table_speed_abs[i];
+            uint32_t l0 = (i == PWM_TABLE_SIZE-1) ? PWM_WRAP : (uint32_t)(i * 25);
+            uint32_t l1 = (j == PWM_TABLE_SIZE-1) ? PWM_WRAP : (uint32_t)(j * 25);
+            if (b == a) {
+                printf("[Table] Exact match at idx=%u level=%u speed=%.2f\n", j, l1, b);
+                return l0;
+            }
+            float ratio = (target_rpm - a) / (b - a);
+            float est = (float)l0 + ratio * (float)(l1 - l0);
+            if (est < 0.0f) est = 0.0f;
+            if (est > (float)PWM_WRAP) est = (float)PWM_WRAP;
+            printf("[Table] Interpolating between idx=%u(level=%u,spd=%.2f) and idx=%u(level=%u,spd=%.2f) -> est=%.1f\n",
+                   i, l0, a, j, l1, b, est);
+            return (uint32_t)est;
+        }
+    }
+
+    // fallback: return last level
+    return PWM_WRAP;
+}
+
+// Local refinement: sample at (est - delta), est, (est + delta) and interpolate locally
+static uint32_t pwm_refine_estimate(float target_rpm, uint32_t est, uint32_t delta, uint32_t pause_ms) {
+    uint32_t low = (est > delta) ? (est - delta) : 0;
+    uint32_t mid = est;
+    uint32_t high = (est + delta > PWM_WRAP) ? PWM_WRAP : (est + delta);
+
+    float vals[3] = {0.0f, 0.0f, 0.0f};
+    uint32_t levels[3] = {low, mid, high};
+
+    for (int k = 0; k < 3; ++k) {
+        motor_set_duty(PIN_EN, (uint16_t)levels[k]);
+        sleep_ms(pause_ms);
+        // take one measurement (timer updates every SPEED_PERIOD_MS)
+        vals[k] = fabsf(motor_speed_rpm);
+        printf("[Refine] Level=%u -> Measured RPM=%.2f\n", levels[k], vals[k]);
+    }
+
+    // find bracketing interval among measured vals
+    for (int k = 0; k + 1 < 3; ++k) {
+        float a = vals[k];
+        float b = vals[k+1];
+        if ((a <= target_rpm && target_rpm <= b) || (b <= target_rpm && target_rpm <= a)) {
+            uint32_t l0 = levels[k];
+            uint32_t l1 = levels[k+1];
+            if (b == a) return l0;
+            float ratio = (target_rpm - a) / (b - a);
+            float estf = (float)l0 + ratio * (float)(l1 - l0);
+            if (estf < 0.0f) estf = 0.0f;
+            if (estf > (float)PWM_WRAP) estf = (float)PWM_WRAP;
+            printf("[Refine] Interpolated local est=%.1f between %u(%.2f) and %u(%.2f)\n", estf, l0, a, l1, b);
+            return (uint32_t)estf;
+        }
+    }
+
+    // fallback: return mid
+    return mid;
 }
 
 int main() {
@@ -645,21 +799,50 @@ int main() {
                 printf("\nBalayage terminé.\n");
                 break;
 
+                case 4:
+                // Balayage & Export header
+                printf("\n[Option 4] Balayage complet et export du tableau en format .h (imprimé sur la série)\n");
+                printf("Cela prendra ~4 minutes. Le header C sera imprimé à la fin.\n\n");
+                pwm_export_table_as_header(25u, 6249u, 1000u);
+                printf("\nExport terminé. Copiez le bloc START-END et collez dans pwm_lookup_table.h\n");
+                break;
             case 2:
-                // Trouver RPM pour cible
-                printf("\n[Option 2] Trouver PWM pour une vitesse cible\n");
-                printf("Entrez la RPM cible (ex: 150) : ");
+                // Finder : demande la consigne RPM puis utilise la table + refinement
+                printf("\n[Option 2] Trouver PWM pour une consigne RPM.\n");
+                printf("Entrez RPM cible (0-300) : ");
                 fflush(stdout);
-                int target_rpm = read_input_int();
-                if (target_rpm == -1) {
+                int tr = read_input_int();
+                if (tr == -1) {
                     printf("Saisie annulée. Retour au menu.\n");
-                } else if (target_rpm < 0 || target_rpm > 300) {
+                } else if (tr < 0 || tr > 300) {
                     printf("RPM hors plage (0-300). Annulé.\n");
                 } else {
-                    printf("\nRecherche PWM pour RPM=%.0f...\n", (float)target_rpm);
-                    printf("Cela prendra ~4 minutes. Veuillez patienter...\n\n");
-                    uint32_t pwm_level = pwm_find_for_rpm((float)target_rpm, 25u, 6249u, 1000u);
-                    printf("\n[Résultat] RPM=%.0f -> PWM level=%u\n\n", (float)target_rpm, pwm_level);
+                    float target_rpm = (float)tr;
+                    printf("\nRecherche PWM pour RPM=%.0f...\n", target_rpm);
+
+                    // First try the stored table (fast)
+                    uint32_t pwm_level = pwm_lookup_for_rpm(target_rpm);
+                    printf("[Table] Estimated PWM level=%u (from lookup table)\n", pwm_level);
+
+                    // Refine estimate by sampling around the estimate (no full sweep)
+                    uint32_t refined = pwm_refine_estimate(target_rpm, pwm_level, 50u, 1000u);
+                    if (refined != pwm_level) {
+                        printf("[Refine] Improved estimate -> PWM level=%u\n", refined);
+                        pwm_level = refined;
+                    } else {
+                        printf("[Refine] No local improvement\n");
+                    }
+
+                    // Verify by setting and measuring (average over two samples)
+                    motor_set_duty(PIN_EN, (uint16_t)pwm_level);
+                    sleep_ms(1500); // let it settle and get the timer measurement
+                    float verify1 = fabsf(motor_speed_rpm);
+                    sleep_ms(1000);
+                    float verify2 = fabsf(motor_speed_rpm);
+                    float verify_avg = (verify1 + verify2) / 2.0f;
+                    printf("[Verify] Set level=%u -> Measured RPM=%.2f (samples %.2f, %.2f)\n", pwm_level, verify_avg, verify1, verify2);
+
+                    printf("\n[Résultat] RPM=%.0f -> PWM level=%u\n\n", target_rpm, pwm_level);
                 }
                 break;
 
@@ -671,6 +854,36 @@ int main() {
                 while (true) {
                     sleep_ms(1000);
                 }
+                break;
+
+            case 5:
+                // Quick motor test: set PWM, measure, reverse, measure
+                printf("\n[Option 5] Test rapide du moteur\n");
+                printf("Direction actuelle (PIN_DIR)=%d, last PWM=%u\n", gpio_get(PIN_DIR), last_pwm_set);
+                printf("Mettre PWM = 3000 (approx 50%%) pour 2s...\n");
+                motor_set_duty(PIN_EN, 3000);
+                sleep_ms(2000);
+                printf("Mesure: position=%ld  vitesse=%.2f RPM\n", (long)motor_position, motor_speed_rpm);
+                motor_set_duty(PIN_EN, 0);
+                sleep_ms(500);
+
+                printf("Inversion de la direction et remise PWM = 3000 pour 2s...\n");
+                gpio_put(PIN_DIR, !gpio_get(PIN_DIR));
+                motor_set_duty(PIN_EN, 3000);
+                sleep_ms(2000);
+                printf("Mesure: position=%ld  vitesse=%.2f RPM\n", (long)motor_position, motor_speed_rpm);
+                motor_set_duty(PIN_EN, 0);
+                sleep_ms(500);
+                // restore direction to default
+                gpio_put(PIN_DIR, 1);
+                printf("Test terminé. direction restaurée (PIN_DIR)=1\n");
+                break;
+
+            case 6:
+                // Diagnostics print
+                printf("\n[Option 6] Diagnostics\n");
+                printf("PIN_DIR=%d, last_pwm_set=%u, motor_position=%ld, motor_speed_rpm=%.2f\n",
+                       gpio_get(PIN_DIR), last_pwm_set, (long)motor_position, motor_speed_rpm);
                 break;
 
             default:
