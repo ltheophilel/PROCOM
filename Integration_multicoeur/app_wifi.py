@@ -8,7 +8,7 @@ import logging
 import numpy as np
 from enum import Enum
 
-PICO_IP = "10.244.156.53"
+PICO_IP = "172.20.10.2"
 PICO_PORT = 4242
 
 WIDTH = 80

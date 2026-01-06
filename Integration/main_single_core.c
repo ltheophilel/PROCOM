@@ -2,8 +2,6 @@
 #include "pico/stdlib.h"
 #include "lib/lib.h"
 #include "hardware/i2c.h"
-#include "pico/multicore.h"
-#include "pico/sync.h"
 
 #define I2C_SDA 26
 #define I2C_SCL 27
@@ -11,39 +9,9 @@
 #define Vmax 60 // RPM max des moteurs
 
 static char  str_v_mot[32];
-static uint64_t t_us_core_0_beginning_loop;
-static uint64_t t_us_core_1_beginning_loop;
-int v_mot_droit;
-int v_mot_gauche;
-double angle;
-
-static uint8_t* outbuf1;
-static uint8_t* outbuf2;
-static bool toggle_buf = false;
-
-static uint8_t** get_outbuf_from_core(bool core) {
-    return (toggle_buf == core) ? &outbuf1 : &outbuf2;
-}
 
 
-static bool core_0_ready = false;
-static bool core_1_ready = false;
-static void core_ready_to_swap(bool core, bool ready) {
-    switch (core) {
-        case 0:
-            core_0_ready = ready;
-            break;
-        case 1:
-            core_1_ready = ready;
-            break;
-    }   
-    if (core_0_ready && core_1_ready) {
-        printf("Core 0 using buffer %d, Core 1 using buffer %d\n", toggle_buf ? 0 : 1, toggle_buf ? 1 : 0);
-        toggle_buf = !toggle_buf;
-        core_0_ready = false;
-        core_1_ready = false;
-    }
-}
+
 
 void interpretCommand(TCP_SERVER_T *state, const char* command) {
     // Implémentez ici l'interprétation des commandes reçues
@@ -66,8 +34,11 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
 }
 
 
-void core1_entry()
-{
+// BUFF_SIZE défini dans tcp_server.h
+
+int main() {
+    stdio_init_all();
+    sleep_ms(2000);
     // Initialisation Wi-Fi
     err_t connect_success = wifi_auto_connect();
     if (connect_success != ERR_OK) {
@@ -76,10 +47,8 @@ void core1_entry()
         pico_set_led(false); 
         // return 1;
     } else pico_set_led(true); 
-
     
     TCP_SERVER_T* state;
-    uint8_t rx_buffer[BUF_SIZE];
     if (connect_success == ERR_OK) state = tcp_server_start();
 
     // Initialisation OLED
@@ -87,59 +56,7 @@ void core1_entry()
     renderSymbol(RPI,1,56); // Render the Rpi Symbol
     renderIPString(IP4ADDR);
 
-    while (true)
-    {
-        if (connect_success == ERR_OK) {
-            t_us_core_1_beginning_loop = time_us_64();
-            int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
-
-            if (received > 0) {
-                // Ajouter un '\0' pour créer une chaîne C
-                rx_buffer[received] = '\0';
-
-                printf("Reçu du client : %s\n", rx_buffer);
-
-                // Réponse simple : renvoyer exactement ce qu'on a reçu
-                interpretCommand(state, (const char *)rx_buffer);
-            }
-            sleep_ms(10);
-
-            snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
-            tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
-            snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
-            tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_1);
-            snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
-            tcp_server_send(state, str_v_mot, PACKET_TYPE_GENERAL);
-
-            err_t err = tcp_send_large_img(state, *get_outbuf_from_core(1), MAX_WIDTH*MAX_HEIGHT);
-            printf("TCP send time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
-            if (err != ERR_OK) {
-                printf("Erreur d'envoi de l'image : %d\n", err);
-            }
-            uint8_t** pointer_to_outbuf = get_outbuf_from_core(1);
-            core_ready_to_swap(1, true);
-            printf("Core 1: Waiting for swap...\n");
-            while (pointer_to_outbuf == get_outbuf_from_core(1))
-            {
-                sleep_ms(10);
-                // tight_loop_contents();
-            }
-            printf("Core 1: Swap done\n");
-            printf("Core 1: Processing time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
-            
-        }
-        tight_loop_contents();
-    }   
-}
-
-
-// BUFF_SIZE défini dans tcp_server.h
-
-int main() {
-    stdio_init_all();
-    sleep_ms(2000);
-    multicore_launch_core1(core1_entry);
-
+    uint8_t rx_buffer[BUF_SIZE];
 
     // Initialisation moteurs
     printf("Initialisation des moteurs\n");
@@ -169,11 +86,8 @@ int main() {
     printf("Camera initialised\n");
     motor_set_pwm(&moteur1, 0.);
     /* Creation Buffers Camera */
-    static uint8_t *frame_buffer, *bw_outbuf;
-    creation_buffers_camera(&frame_buffer, get_outbuf_from_core(0),
-                           &bw_outbuf, width, height);
-
-    creation_buffers_camera(&frame_buffer, get_outbuf_from_core(1),
+    static uint8_t *frame_buffer, *outbuf, *bw_outbuf;
+    int creation_buffer_out = creation_buffers_camera(&frame_buffer, &outbuf,
                            &bw_outbuf, width, height);
 
 
@@ -182,27 +96,39 @@ int main() {
         #if PICO_CYW43_ARCH_POLL
             cyw43_arch_poll();
         #endif
+        if (connect_success == ERR_OK) {
+            int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
+
+            if (received > 0) {
+                // Ajouter un '\0' pour créer une chaîne C
+                rx_buffer[received] = '\0';
+
+                printf("Reçu du client : %s\n", rx_buffer);
+
+                // Réponse simple : renvoyer exactement ce qu'on a reçu
+                interpretCommand(state, (const char *)rx_buffer);
+            }
+            sleep_ms(100);
+        }
         
-        
-        t_us_core_0_beginning_loop = time_us_64();
-        core_ready_to_swap(0, false);
+        uint64_t t_us_current = time_us_64();
         camera_capture_blocking(&camera, frame_buffer, width, height);
-        // printf("Capture time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
+        printf("Capture time (us): %llu\n", time_us_64() - t_us_current);
         // Header P5 : format et dimensions de l'image
         // printf("P5\n%d %d\n255\n", width, height);
 
         // Extraire Y seulement
         for (int px = 0; px < width * height; px++)
-            (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
-        
-        // Traitement
-        int seuillage_out = seuillage(*get_outbuf_from_core(0), bw_outbuf,
-                                      width, height);
-        core_ready_to_swap(0, true);
+            outbuf[px] = frame_buffer[px * 2];
 
-        angle = PI*trouver_angle(bw_outbuf, width, height)/180;
-        v_mot_droit = (Vmax/2)*(1+sin(angle));
-        v_mot_gauche = (Vmax/2)*(1-sin(angle));
+        // Traitement
+        t_us_current = time_us_64();
+        int seuillage_out = seuillage(outbuf, bw_outbuf,
+                                      width, height);
+
+        double angle = PI*trouver_angle(bw_outbuf, width, height)/180;
+        int v_mot_droit = (Vmax/2)*(1+sin(angle));
+        int v_mot_gauche = (Vmax/2)*(1-sin(angle));
 
         // double angle = trouver_angle(bw_outbuf, width, height);
         // int v_mot_droit = Vmax/2*(1+angle/90);
@@ -215,8 +141,23 @@ int main() {
                pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
         // motor_set_pwm(&moteur0, 50+v_mot_droit/2);
         // motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
-        printf("Core 0: Processing time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
+        if (connect_success == ERR_OK) {
+            snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
+            tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
+            snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
+            tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_1);
+            snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
+            tcp_server_send(state, str_v_mot, PACKET_TYPE_GENERAL);
+        }
 
+
+        if (connect_success == ERR_OK) {
+            err = tcp_send_large_img(state, outbuf, width*height);
+            printf("TCP send time (us): %llu\n", time_us_64() - t_us_current);
+            if (err != ERR_OK) {
+                printf("Erreur d'envoi de l'image : %d\n", err);
+            }
+        }
         // FPS max → pas de pause
         tight_loop_contents();
     }
@@ -225,8 +166,7 @@ int main() {
     pico_set_led(false);
     cyw43_arch_deinit();
     free(frame_buffer);
-    free(*get_outbuf_from_core(0));
-    free(*get_outbuf_from_core(1));
+    free(outbuf);
     free(bw_outbuf);
     return 0;
 }

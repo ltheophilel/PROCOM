@@ -9,7 +9,7 @@ import numpy as np
 from enum import Enum
 
 
-PICO_IP = "172.20.10.2"
+PICO_IP = "192.168.31.233"  # "172.20.10.2"
 PICO_PORT = 4242
 
 WIDTH = 80
