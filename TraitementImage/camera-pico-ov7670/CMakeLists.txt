@@ -54,6 +54,12 @@ if (PICO_CYW43_SUPPORTED)
     target_link_libraries(camera_test pico_cyw43_arch_none hardware_i2c)
 endif()
 
+pico_generate_pio_header(
+    ${PROJECT_NAME}
+    ${CMAKE_CURRENT_LIST_DIR}/src/ov7670_capture.pio
+)
+
+
 # create map/bin/hex file etc.
 pico_add_extra_outputs(camera_test)
 

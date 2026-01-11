@@ -26,39 +26,49 @@ void core1_entry(void);
 
 
 // Supprime les espaces en début et fin de chaîne
-char* trim_whitespace(char *line) {
+char* trim_whitespace(char *line)
+{
     char *s = line;
     while (*s && (*s == ' ' || *s == '\t')) s++;
     char *end = s + strlen(s) - 1;
-    while (end >= s && (*end == ' ' || *end == '\t' || *end == '\0' || *end == '\n' || *end == '\r')) {
+    while (end >= s && (*end == ' ' || *end == '\t' || *end == '\0' || *end == '\n' || *end == '\r'))
+    {
         *end = '\0';
         end--;
     }
     return s;
 }
 
-int estNombreEntier(const char *s) {
+int estNombreEntier(const char *s)
+{
     char *end;
     long val = strtol(s, &end, 10);
     // Vérifie si la conversion a consommé toute la chaîne et qu'il n'y a pas eu d'erreur
     return (*end == '\0' && s != end);
 }
 
-void interpretCommand(TCP_SERVER_T *state, const char* command) {
+void interpretCommand(TCP_SERVER_T *state, const char* command)
+{
     // Implémentez ici l'interprétation des commandes reçues
     command = trim_whitespace((char *)command);
     printf("Interpreted Command: '%s'\n", command);
-    if (strcmp(command, "LED ON") == 0) {
+    if (strcmp(command, "LED ON") == 0)
+    {
         pico_set_led(true);
         tcp_server_send(state, "LED is ON", PACKET_TYPE_GENERAL);
-    } else if (strcmp(command, "LED OFF") == 0) {
+    }
+    else if (strcmp(command, "LED OFF") == 0)
+    {
         pico_set_led(false);
         tcp_server_send(state, "LED is OFF", PACKET_TYPE_GENERAL);
-    } else if (estNombreEntier(command)) {
+    } else if (estNombreEntier(command))
+    {
         char result[100]; // Buffer statique
         // snprintf(result, sizeof(result), "%s%s", prefix, command);
         tcp_server_send(state, command, PACKET_TYPE_MOT_0);
-    } else {
+    }
+    else
+    {
         // Réponse simple : renvoyer exactement ce qu'on a reçu
         tcp_server_send(state, command, PACKET_TYPE_GENERAL);
     }
@@ -181,7 +191,8 @@ int main() {
         #endif
 
         int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
-        if (received > 0) {
+        if (received > 0)
+        {
             rx_buffer[received] = '\0';
             printf("Reçu du client : %s\n", rx_buffer);
             interpretCommand(state, (const char *)rx_buffer);
@@ -202,7 +213,8 @@ int main() {
                                 (width*height - offset) : TCP_CHUNK_SIZE;
 
                 err = tcp_send_large_img_chunk(state, outbuf[previous] + offset, chunk);
-                if (err != ERR_OK) {
+                if (err != ERR_OK)
+                {
                     printf("Erreur d'envoi TCP fragment : %d\n", err);
                     break;
                 }

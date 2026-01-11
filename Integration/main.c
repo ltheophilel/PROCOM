@@ -21,14 +21,16 @@ static uint8_t* outbuf1;
 static uint8_t* outbuf2;
 static bool toggle_buf = false;
 
-static uint8_t** get_outbuf_from_core(bool core) {
+static bool core_0_ready = false;
+static bool core_1_ready = false;
+
+static uint8_t** get_outbuf_from_core(bool core)
+{
     return (toggle_buf == core) ? &outbuf1 : &outbuf2;
 }
 
-
-static bool core_0_ready = false;
-static bool core_1_ready = false;
-static void core_ready_to_swap(bool core, bool ready) {
+static void core_ready_to_swap(bool core, bool ready)
+{
     switch (core) {
         case 0:
             core_0_ready = ready;
@@ -36,8 +38,9 @@ static void core_ready_to_swap(bool core, bool ready) {
         case 1:
             core_1_ready = ready;
             break;
-    }   
-    if (core_0_ready && core_1_ready) {
+    }
+    if (core_0_ready && core_1_ready)
+    {
         printf("Core 0 using buffer %d, Core 1 using buffer %d\n", toggle_buf ? 0 : 1, toggle_buf ? 1 : 0);
         toggle_buf = !toggle_buf;
         core_0_ready = false;
@@ -45,39 +48,46 @@ static void core_ready_to_swap(bool core, bool ready) {
     }
 }
 
-void interpretCommand(TCP_SERVER_T *state, const char* command) {
+void interpretCommand(TCP_SERVER_T *state, const char* command)
+{
     // Implémentez ici l'interprétation des commandes reçues
     command = trim_whitespace_divers((char *)command);
     printf("Interpreted Command: '%s'\n", command);
-    if (strcmp(command, "LED ON") == 0) {
+    if (strcmp(command, "LED ON") == 0)
+    {
         pico_set_led(true);
         tcp_server_send(state, "LED is ON", PACKET_TYPE_GENERAL);
-    } else if (strcmp(command, "LED OFF") == 0) {
+    }
+    else if (strcmp(command, "LED OFF") == 0)
+    {
         pico_set_led(false);
         tcp_server_send(state, "LED is OFF", PACKET_TYPE_GENERAL);
-    } else if (estNombreEntier(command)) {
+    }
+    else if (estNombreEntier(command))
+    {
         char result[100]; // Buffer statique
         // snprintf(result, sizeof(result), "%s%s", prefix, command);
         tcp_server_send(state, command, PACKET_TYPE_MOT_0);
-    } else {
+    }
+    else
+    {
         // Réponse simple : renvoyer exactement ce qu'on a reçu
         tcp_server_send(state, command, PACKET_TYPE_GENERAL);
     }
 }
 
-
 void core1_entry()
 {
     // Initialisation Wi-Fi
     err_t connect_success = wifi_auto_connect();
-    if (connect_success != ERR_OK) {
+    if (connect_success != ERR_OK)
+    {
         printf("Échec de la connexion Wi-Fi.\n");
         pico_blink_led(10, 100); // Clignote rapidement pour indiquer l'erreur
         pico_set_led(false); 
         // return 1;
-    } else pico_set_led(true); 
+    } else pico_set_led(true);
 
-    
     TCP_SERVER_T* state;
     uint8_t rx_buffer[BUF_SIZE];
     if (connect_success == ERR_OK) state = tcp_server_start();
@@ -89,11 +99,13 @@ void core1_entry()
 
     while (true)
     {
-        if (connect_success == ERR_OK) {
+        if (connect_success == ERR_OK)
+        {
             t_us_core_1_beginning_loop = time_us_64();
             int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
 
-            if (received > 0) {
+            if (received > 0)
+            {
                 // Ajouter un '\0' pour créer une chaîne C
                 rx_buffer[received] = '\0';
 
@@ -113,7 +125,8 @@ void core1_entry()
 
             err_t err = tcp_send_large_img(state, *get_outbuf_from_core(1), MAX_WIDTH*MAX_HEIGHT);
             printf("TCP send time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
-            if (err != ERR_OK) {
+            if (err != ERR_OK)
+            {
                 printf("Erreur d'envoi de l'image : %d\n", err);
             }
             uint8_t** pointer_to_outbuf = get_outbuf_from_core(1);
@@ -126,22 +139,22 @@ void core1_entry()
             }
             printf("Core 1: Swap done\n");
             printf("Core 1: Processing time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
-            
         }
         tight_loop_contents();
-    }   
+    }
 }
 
 
 // BUFF_SIZE défini dans tcp_server.h
 
-int main() {
+int main()
+{
     stdio_init_all();
     sleep_ms(2000);
     multicore_launch_core1(core1_entry);
 
 
-    // Initialisation moteurs
+    /* INITIALISATION MOTEURS */
     printf("Initialisation des moteurs\n");
     init_motor_and_encoder(&moteur0);
     init_motor_and_encoder(&moteur1);
@@ -149,10 +162,9 @@ int main() {
     motor_set_direction(&moteur1, 0);
     motor_set_pwm(&moteur0, 0.);
     motor_set_pwm(&moteur1, 0.);
+
     /* INITIALISATION CAMERA */
-
     struct camera camera;
-
     init_camera();
     struct camera_platform_config platform = create_camera_platform_config();
 
@@ -168,6 +180,7 @@ int main() {
     if (camera_init(&camera, &platform, size)) return 1;
     printf("Camera initialised\n");
     motor_set_pwm(&moteur1, 0.);
+
     /* Creation Buffers Camera */
     static uint8_t *frame_buffer, *bw_outbuf;
     creation_buffers_camera(&frame_buffer, get_outbuf_from_core(0),
@@ -176,14 +189,12 @@ int main() {
     creation_buffers_camera(&frame_buffer, get_outbuf_from_core(1),
                            &bw_outbuf, width, height);
 
-
     err_t err;
     while (true) {
         #if PICO_CYW43_ARCH_POLL
             cyw43_arch_poll();
         #endif
-        
-        
+
         t_us_core_0_beginning_loop = time_us_64();
         core_ready_to_swap(0, false);
         camera_capture_blocking(&camera, frame_buffer, width, height);
@@ -194,19 +205,22 @@ int main() {
         // Extraire Y seulement
         for (int px = 0; px < width * height; px++)
             (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
-        
+
         // Traitement
         int seuillage_out = seuillage(*get_outbuf_from_core(0), bw_outbuf,
                                       width, height);
         core_ready_to_swap(0, true);
 
+        /* Version sinus */
         angle = PI*trouver_angle(bw_outbuf, width, height)/180;
         v_mot_droit = (Vmax/2)*(1+sin(angle));
         v_mot_gauche = (Vmax/2)*(1-sin(angle));
 
+        /* Version lineaire */
         // double angle = trouver_angle(bw_outbuf, width, height);
         // int v_mot_droit = Vmax/2*(1+angle/90);
         // int v_mot_gauche = Vmax/2*(1-angle/90);
+
         printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
                angle, v_mot_droit, v_mot_gauche);
         motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(v_mot_droit));

@@ -7,6 +7,13 @@
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
 #include "../include/camera.h"
+#include "hardware/pio.h"
+#include "hardware/dma.h"
+#include "ov7670_capture.pio.h"
+
+PIO camera_pio = pio0;
+uint camera_sm = 0;
+int camera_dma_chan;
 
 int __i2c_write_blocking(void *i2c_handle, uint8_t addr,
     const uint8_t *src, size_t len)
@@ -119,4 +126,34 @@ int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **
         return 1;
     }
     return 0;
+}
+
+void camera_pio_init(void)
+{
+    uint offset = pio_add_program(camera_pio, &ov7670_capture_program);
+
+    pio_sm_config c =
+        ov7670_capture_program_get_default_config(offset);
+
+    sm_config_set_in_pins(&c, CAMERA_D0);
+    // sm_config_set_wait_pin(&c, CAMERA_PCLK_PIN);
+    sm_config_set_jmp_pin(&c, CAMERA_HREF_PIN);
+
+    sm_config_set_in_shift(&c, false, true, 8);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+
+    for (int i = 0; i < 8; i++)
+        pio_gpio_init(camera_pio, CAMERA_D0 + i);
+
+    pio_gpio_init(camera_pio, CAMERA_PCLK_PIN);
+    pio_gpio_init(camera_pio, CAMERA_HREF_PIN);
+    pio_gpio_init(camera_pio, CAMERA_VSYNC_PIN);
+
+    pio_sm_set_consecutive_pindirs(
+        camera_pio, camera_sm, CAMERA_D0, 8, false);
+
+    pio_sm_init(camera_pio, camera_sm, offset, &c);
+    pio_sm_set_enabled(camera_pio, camera_sm, true);
+
+    camera_dma_chan = dma_claim_unused_channel(true);
 }

@@ -9,7 +9,13 @@
 #include "pico/stdlib.h"
 #include "camera.h"
 #include "init_camera.h"
+#include "hardware/pio.h"
+#include "hardware/dma.h"
+#include "ov7670_capture.pio.h"
 
+extern PIO camera_pio;
+extern uint camera_sm;
+extern int camera_dma_chan;
 
 struct camera_platform_config create_camera_platform_config(void);
 
@@ -22,4 +28,5 @@ int choix_format(int division,
 int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **bw_outbuf,
                             uint16_t width, uint16_t height);
 
+void camera_pio_init();
 #endif
