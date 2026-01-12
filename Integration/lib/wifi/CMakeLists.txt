@@ -14,3 +14,7 @@ target_link_libraries(wifi_lib
     pico_cyw43_arch
     pico_cyw43_arch_lwip_threadsafe_background
 )
+
+# Augmenter la taille de la heap si nécessaire
+set(PICO_STACK_SIZE 2048)
+set(PICO_HEAP_SIZE 8192)

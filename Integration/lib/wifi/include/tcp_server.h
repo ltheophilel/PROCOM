@@ -19,7 +19,7 @@
 
 #define TCP_PORT 4242
 #define DEBUG_printf printf
-#define BUF_SIZE 1024
+#define BUF_SIZE 1400 // 1024
 
 extern char *IP4ADDR;
 
@@ -48,7 +48,8 @@ typedef enum {
     PACKET_TYPE_END_IMG = 2,
     PACKET_TYPE_MOT_0 = 3,
     PACKET_TYPE_MOT_1 = 4,
-    PACKET_TYPE_GENERAL = 5
+    PACKET_TYPE_GENERAL = 5,
+    PACKET_TYPE_ALL_IMG = 6
 } PACKET_TYPE;
 
 TCP_SERVER_T* tcp_server_start(void);

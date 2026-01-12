@@ -131,7 +131,7 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
     double m = (n * sum_xy - sum_x * sum_y) / denom;
     double p = (sum_y - m * sum_x) / (double)n;
 
-    printf("Équation de la droite : y = %.6fx + %.6f\n", m, p);
+    // printf("Équation de la droite : y = %.6fx + %.6f\n", m, p);
 
 
     double angle = atan((m*PROFONDEUR+p)/PROFONDEUR) * (180.0 / PI);

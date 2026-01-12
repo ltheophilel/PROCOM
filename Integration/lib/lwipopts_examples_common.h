@@ -23,9 +23,9 @@
 #endif
 #define MEM_ALIGNMENT               4
 #ifndef MEM_SIZE
-#define MEM_SIZE                    4000
+#define MEM_SIZE                    8000 // 4000
 #endif
-#define MEMP_NUM_TCP_SEG            32
+#define MEMP_NUM_TCP_SEG            64 // 32
 #define MEMP_NUM_ARP_QUEUE          10
 #define PBUF_POOL_SIZE              24
 #define LWIP_ARP                    1
@@ -92,3 +92,9 @@
 #define DHCP_DEBUG                  LWIP_DBG_OFF
 
 #endif /* __LWIPOPTS_H__ */
+
+
+// #define LWIP_DEBUG 1
+// #define TCP_DEBUG LWIP_DBG_ON
+// #define TCP_INPUT_DEBUG LWIP_DBG_ON
+// #define PBUF_DEBUG LWIP_DBG_ON

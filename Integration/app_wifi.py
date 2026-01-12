@@ -15,7 +15,7 @@ PICO_PORT = 4242
 WIDTH = 80
 HEIGHT = 60
 IMAGE_SIZE = WIDTH * HEIGHT  # 4800 octets
-BUF_SIZE = 1024
+BUF_SIZE = 1400 # 1024
 HEADER_SIZE = 3
 
 sock = None
@@ -28,6 +28,7 @@ data = bytearray()
 
 app = Flask(__name__)
 
+# ===================== TCP thread ======================
 # Désactiver les logs de Werkzeug
 global log
 log = logging.getLogger('werkzeug')
@@ -40,9 +41,10 @@ class DATA_TYPE(Enum):
     MOT_0 = 3
     MOT_1 = 4
     GENERAL = 5
+    ALL_IMG = 6
 
 
-def receive_image(sock):
+def receive_data(sock):
     global temps_debut, rx_queue, data
     while True:
         # print(f"[TCP] Réception des données… {len(data)}/{IMAGE_SIZE} octets reçus.")
@@ -66,6 +68,10 @@ def receive_image(sock):
             data = bytearray()  # Réinitialiser les données pour une nouvelle image
             data.extend(packet_data)
         elif packet_type == DATA_TYPE.END_IMG.value:
+            data.extend(packet_data)
+            break  # Fin de l'image
+        elif packet_type == DATA_TYPE.ALL_IMG.value:
+            data = bytearray()
             data.extend(packet_data)
             break  # Fin de l'image
         elif packet_type == DATA_TYPE.IMG.value:
@@ -93,7 +99,7 @@ def tcp_thread():
     while running:
         try:
             temps_debut = time.time()
-            raw, packet_type = receive_image(sock)
+            raw, packet_type = receive_data(sock)
             if packet_type == DATA_TYPE.END_IMG.value:
                 if len(raw) != IMAGE_SIZE:
                     print(f"[TCP] Taille d'image incorrecte : {len(raw)} octets reçus au lieu de {IMAGE_SIZE}.")
@@ -113,7 +119,7 @@ def tcp_thread():
 
     print("[TCP] Thread terminé.")
 
-
+# ====================== routes Flask ======================
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -154,7 +160,7 @@ def read():
     return jsonify({"data": None})
 
 
-
+# ====================== main ======================
 if __name__ == "__main__":
     # thread TCP
     log.disabled = False

@@ -23,6 +23,7 @@ static err_t on_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t 
     pbuf_copy_partial(p, state->buffer_recv + state->recv_len, len, 0);
     state->recv_len += len;
     tcp_recved(tpcb, p->tot_len);
+    printf("Received %u bytes, total buffered: %u bytes\n", (unsigned int)len, (unsigned int)state->recv_len);
     if (p->ref == 1) {
         pbuf_free(p);  // Libérer uniquement si c'est la dernière référence
     }
@@ -107,7 +108,9 @@ err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
 
         // Déterminer le type de paquet
         uint8_t packet_type;
-        if (sent == 0) {
+        if (sent == 0 && chunk >= len) {
+            packet_type = PACKET_TYPE_ALL_IMG; // Image complète en un seul paquet
+        } else if (sent == 0) {
             packet_type = PACKET_TYPE_START_IMG; // Début de l'image
         } else if (sent + chunk >= len) {
             packet_type = PACKET_TYPE_END_IMG; // Dernier paquet

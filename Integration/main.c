@@ -21,8 +21,17 @@ static uint8_t* outbuf1;
 static uint8_t* outbuf2;
 static bool toggle_buf = false;
 
+static mutex_t multicore_lock;
+
 static uint8_t** get_outbuf_from_core(bool core) {
-    return (toggle_buf == core) ? &outbuf1 : &outbuf2;
+    // mutex_enter_blocking(&multicore_lock);
+    printf("Core %d: Getting output buffer (toggle_buf=%d)\n", core, toggle_buf);
+    uint64_t t_us = time_us_64();
+    printf("Core %d: time (us): %llu\n", core, t_us);
+
+    uint8_t** outbuf = (toggle_buf == core) ? &outbuf1 : &outbuf2;
+    // mutex_exit(&multicore_lock);
+    return outbuf;
 }
 
 
@@ -91,6 +100,7 @@ void core1_entry()
     {
         if (connect_success == ERR_OK) {
             t_us_core_1_beginning_loop = time_us_64();
+            
             int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
 
             if (received > 0) {
@@ -133,14 +143,8 @@ void core1_entry()
 }
 
 
-// BUFF_SIZE défini dans tcp_server.h
-
-int main() {
-    stdio_init_all();
-    sleep_ms(2000);
-    multicore_launch_core1(core1_entry);
-
-
+void core0_entry()
+{
     // Initialisation moteurs
     printf("Initialisation des moteurs\n");
     init_motor_and_encoder(&moteur0);
@@ -165,7 +169,7 @@ int main() {
     const uint16_t height = height_temp;
 
     printf("Camera to be initialised\n");
-    if (camera_init(&camera, &platform, size)) return 1;
+    if (camera_init(&camera, &platform, size)) printf("Erreur d'initialisation de la caméra\n"); // return 1;
     printf("Camera initialised\n");
     motor_set_pwm(&moteur1, 0.);
     /* Creation Buffers Camera */
@@ -183,7 +187,7 @@ int main() {
             cyw43_arch_poll();
         #endif
         
-        
+        uint8_t** pointer_to_outbuf = get_outbuf_from_core(0);
         t_us_core_0_beginning_loop = time_us_64();
         core_ready_to_swap(0, false);
         camera_capture_blocking(&camera, frame_buffer, width, height);
@@ -192,11 +196,12 @@ int main() {
         // printf("P5\n%d %d\n255\n", width, height);
 
         // Extraire Y seulement
+
         for (int px = 0; px < width * height; px++)
-            (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
+            (*pointer_to_outbuf)[px] = frame_buffer[px * 2]; 
         
         // Traitement
-        int seuillage_out = seuillage(*get_outbuf_from_core(0), bw_outbuf,
+        int seuillage_out = seuillage(*pointer_to_outbuf, bw_outbuf,
                                       width, height);
         core_ready_to_swap(0, true);
 
@@ -207,12 +212,12 @@ int main() {
         // double angle = trouver_angle(bw_outbuf, width, height);
         // int v_mot_droit = Vmax/2*(1+angle/90);
         // int v_mot_gauche = Vmax/2*(1-angle/90);
-        printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
-               angle, v_mot_droit, v_mot_gauche);
+        // printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
+            //    angle, v_mot_droit, v_mot_gauche);
         motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(v_mot_droit));
         motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(v_mot_gauche));
-        printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
-               pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
+        // printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
+            //    pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
         // motor_set_pwm(&moteur0, 50+v_mot_droit/2);
         // motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
         printf("Core 0: Processing time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
@@ -228,6 +233,16 @@ int main() {
     free(*get_outbuf_from_core(0));
     free(*get_outbuf_from_core(1));
     free(bw_outbuf);
+}
+
+// BUFF_SIZE défini dans tcp_server.h
+
+int main() {
+    stdio_init_all();
+    sleep_ms(2000);
+    mutex_init(&multicore_lock);
+    multicore_launch_core1(core1_entry);
+    core0_entry();
     return 0;
 }
 
