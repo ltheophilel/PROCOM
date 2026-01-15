@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include "pico/cyw43_arch.h"
 
-// BRANCHEMENTS : 
+/* // BRANCHEMENTS : 
 // ! GP pins
 #define CAMERA_XCLK_PIN 21
 #define CAMERA_PCLK_PIN 10
@@ -28,7 +28,28 @@
 #define CAMERA_D4 12
 #define CAMERA_D5 19
 #define CAMERA_D6 11
-#define CAMERA_D7 20
+#define CAMERA_D7 20 */
+
+// BRANCHEMENTS : 
+// ! GP pins
+#define CAMERA_HREF_PIN 9
+#define CAMERA_PCLK_PIN 10
+#define CAMERA_PWDN_PIN 11
+#define CAMERA_RES_PIN 12
+#define CAMERA_XCLK_PIN 13
+#define CAMERA_D0 14
+#define CAMERA_D1 15
+#define CAMERA_D2 16
+#define CAMERA_D3 17
+#define CAMERA_D4 18
+#define CAMERA_D5 19
+#define CAMERA_D6 20
+#define CAMERA_D7 21
+#define CAMERA_VSYNC_PIN 22
+#define CAMERA_SDA      26
+#define CAMERA_SCL      27
+
+#define FRAME_SIZE (CAMERA_WIDTH_DIV8 * CAMERA_HEIGHT_DIV8 * 2)
 
 #define CAMERA_WIDTH_DIV8  80
 #define CAMERA_HEIGHT_DIV8 60
@@ -72,5 +93,7 @@ int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_
 int camera_init(struct camera *camera, struct camera_platform_config *params, OV7670_size size);
 int camera_configure(struct camera *camera, uint32_t format, uint16_t width, uint16_t height, OV7670_size size);
 int camera_capture_blocking(struct camera *camera, uint8_t *into, uint16_t width, uint16_t height);
+void camera_dma_start(uint8_t *framebuffer, size_t frame_size);
+void camera_capture_frame(uint8_t *buf, size_t frame_size);
 
 #endif /* __CAMERA_H__ */

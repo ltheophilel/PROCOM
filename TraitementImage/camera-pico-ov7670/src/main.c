@@ -8,6 +8,9 @@
 #include "../include/camera.h"
 #include "../include/init_camera.h"
 #include "../include/traitement.h"
+#include "hardware/pio.h"
+#include "hardware/dma.h"
+#include "ov7670_capture.pio.h"
 
 
 int main()
@@ -31,6 +34,7 @@ int main()
     printf("Camera to be initialised\n");
     if (camera_init(&camera, &platform, size)) return 1;
     printf("Camera initialised\n");
+    camera_pio_init();
 
     /* Creation Buffers Camera */
     uint8_t *frame_buffer, *outbuf, *bw_outbuf;
@@ -39,7 +43,7 @@ int main()
 
     while (1)
     {
-        camera_capture_blocking(&camera, frame_buffer, width, height);
+        camera_capture_frame(frame_buffer, FRAME_SIZE);
 
         // Header P5 : format et dimensions de l'image
         printf("P5\n%d %d\n255\n", width, height);
@@ -59,16 +63,16 @@ int main()
         //if (command < -max_command) command = -max_command;
 
         // Affichage de l'angle et de la direction
-        printf("Commande = %.3f\n", command);
-        printf("Direction = ");
+        // printf("Commande = %.3f\n", command);
+        // printf("Direction = ");
 
-        if (command < -1) {
-            printf("Gauche\n");
-        } else if (command > 1) {
-            printf("Droite\n");
-        } else {
-            printf("Tout droit\n");
-        }
+        // if (command < -1) {
+        //     printf("Gauche\n");
+        // } else if (command > 1) {
+        //     printf("Droite\n");
+        // } else {
+        //     printf("Tout droit\n");
+        // }
 
         // Envoi de l'image
         // fwrite(outbuf, 1, width * height, stdout);
