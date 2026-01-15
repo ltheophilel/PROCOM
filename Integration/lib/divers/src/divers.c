@@ -18,3 +18,14 @@ int estNombreEntier(const char *s) {
     // Vérifie si la conversion a consommé toute la chaîne et qu'il n'y a pas eu d'erreur
     return (*end == '\0' && s != end);
 }
+
+
+int signe(double x) {
+    if (fabs(x) < DBL_EPSILON) {
+        return 0; // Considéré comme nul
+    } else if (x > 0.0) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
