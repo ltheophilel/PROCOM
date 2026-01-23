@@ -143,3 +143,73 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
 
     return angle_avg;
 }
+
+int ligne_detectee(uint8_t *bw_image, int width, int height)
+{
+    // ? Axe x vers le haut, axe y vers la droite (robot en bas au milieu)
+    long n = 0;
+
+    // Trouve les pixels noirs (valeur 0)
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            if (bw_image[row*width+col] == 0)
+            {
+                n++;
+            }
+        }
+    }
+    if (n < SEUIL_DETECTION_LIGNE)
+    {
+        return 0; // ligne non détectée
+    }
+    else
+    {
+        return 1; // ligne détectée
+    }
+}
+
+void chercher_ligne()
+{
+    int passage = 0;
+    int ligne_trouvee = 0;
+
+    // Reculer un peu pour revenir près de la ligne
+    motor_set_direction(&moteur0, 0);
+    motor_set_direction(&moteur1, 1);
+
+    motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(V_ROTATION*5));
+    motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION*5));
+
+    sleep_ms(500); // Reculer pendant 0.5 seconde
+
+    motor_set_pwm_brut(&moteur0, 0);
+    motor_set_pwm_brut(&moteur1, 0);
+
+    motor_set_direction(&moteur0, 1);
+    motor_set_direction(&moteur1, 0);
+
+    while (1)
+    {
+        // 1. Vérifier si la ligne est détectée
+        if (ligne_detectee(image_bw, MAX_WIDTH, MAX_HEIGHT))
+        {
+            return; // ligne trouvée, sortir de la fonction
+        }
+
+        // 2. Tourner légèrement à droite
+        motor_set_pwm_brut(&moteur0, 0);
+        motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
+
+        passage++;
+        sleep_ms(100); // Attendre un peu pour que le robot tourne
+
+        // 3. Si on a fait un tour complet (360°), reculer un peu et recommencer
+        if (passage >= 100)
+        {
+            // Reculer de 5 cm
+            passage = 0.0;
+        }
+    }
+}
