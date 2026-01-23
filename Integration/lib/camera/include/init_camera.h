@@ -9,6 +9,9 @@
 #include "pico/stdlib.h"
 #include "../include/camera.h"
 
+#define I2C_SDA 26
+#define I2C_SCL 27
+
 struct camera_platform_config create_camera_platform_config(void);
 
 int init_camera();

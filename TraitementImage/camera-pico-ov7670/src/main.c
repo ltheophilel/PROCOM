@@ -43,7 +43,7 @@ int main()
 
     while (1)
     {
-        camera_capture_frame(frame_buffer, FRAME_SIZE);
+        camera_capture_blocking(&camera, frame_buffer, width, height);
 
         // Header P5 : format et dimensions de l'image
         printf("P5\n%d %d\n255\n", width, height);
@@ -75,7 +75,7 @@ int main()
         // }
 
         // Envoi de l'image
-        // fwrite(outbuf, 1, width * height, stdout);
+        fwrite(outbuf, 1, width * height, stdout);
         fflush(stdout);
         // FPS max → pas de pause
         tight_loop_contents();

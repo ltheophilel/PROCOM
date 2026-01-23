@@ -5,9 +5,6 @@
 #include "pico/multicore.h"
 #include "pico/sync.h"
 
-#define I2C_SDA 26
-#define I2C_SCL 27
-
 #define Vmax 70 // RPM max des moteurs
 #define SENSIBILITE 5
 
@@ -109,7 +106,7 @@ void core1_entry()
         while (true)
         {
                 t_us_core_1_beginning_loop = time_us_64();
-                
+
                 int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
 
                 if (received > 0)
@@ -147,7 +144,7 @@ void core1_entry()
                 }
                 printf("Core 1: Swap done\n");
                 printf("Core 1: Processing time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
-            
+
             tight_loop_contents();
         }
     }
