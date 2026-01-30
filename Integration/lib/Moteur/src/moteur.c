@@ -93,6 +93,15 @@ void init_motor_and_encoder(moteur_config *motor) {
     // );
 }
 
+void init_all_motors_and_encoders()
+{
+    init_motor_and_encoder(&moteur0);
+    init_motor_and_encoder(&moteur1);
+    motor_set_direction(&moteur0, 1);
+    motor_set_direction(&moteur1, 0);
+    motor_set_pwm(&moteur0, 0.);
+    motor_set_pwm(&moteur1, 0.);
+}
 
 // ----------------- TIMER POUR LE CALCUL DE LA VITESSE -----------------
 // Exécuté toutes les SPEED_PERIOD_MS millisecondes
@@ -145,10 +154,35 @@ void motor_set_pwm_brut(moteur_config *motor, uint16_t level) {
     pwm_set_gpio_level(motor->pin_EN, level);
 }
 
+void motor_set_rpm(moteur_config *motor, float target_rpm) {
+    uint32_t pwm_level = pwm_lookup_for_rpm(target_rpm);
+    motor_set_pwm_brut(motor, (uint16_t)pwm_level);
+}
+
 void motor_set_direction(moteur_config *motor, bool direction) {
     gpio_put(motor->pin_DIR, direction);
 }
 
+static int signe(float x) {
+    if (x > 0.0) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
+
+void motor_define_direction_from_pwm(int v_mot_droit, int v_mot_gauche) {
+    if (signe(v_mot_droit) < 0) {
+            motor_set_direction(&moteur0, 0);
+        } else {
+            motor_set_direction(&moteur0, 1);
+        }
+        if (signe(v_mot_gauche) < 0) {
+            motor_set_direction(&moteur1, 1);
+        } else {
+            motor_set_direction(&moteur1, 0);
+        }
+}
 
 float motor_get_speed(moteur_config *motor) {
     return motor->motor_speed_rpm;

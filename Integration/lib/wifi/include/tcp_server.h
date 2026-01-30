@@ -20,6 +20,8 @@
 #define TCP_PORT 4242
 #define DEBUG_printf printf
 #define BUF_SIZE 1400 // 1024
+#define LEN_GENERAL_MSG 10
+#define LEN_FLOAT_MSG 8
 
 extern char *IP4ADDR;
 
@@ -49,7 +51,8 @@ typedef enum {
     PACKET_TYPE_MOT_0 = 3,
     PACKET_TYPE_MOT_1 = 4,
     PACKET_TYPE_GENERAL = 5,
-    PACKET_TYPE_ALL_IMG = 6
+    PACKET_TYPE_ALL_IMG = 6,
+    PACKET_TYPE_ALL_IN_ONE = 7
 } PACKET_TYPE;
 
 TCP_SERVER_T* tcp_server_start(void);
@@ -57,4 +60,12 @@ TCP_SERVER_T* tcp_server_start(void);
 err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type);
 size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buffer, size_t max_len);
 err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len);
+err_t tcp_server_send_all_in_one(TCP_SERVER_T *state, 
+                                const char *general_msg, 
+                                const int v_mot_droit,
+                                const int v_mot_gauche,
+                                const double p,
+                                const double m,
+                                const uint8_t *coded_image, 
+                                size_t len_img);
 #endif /* TCP_SERVER_H */

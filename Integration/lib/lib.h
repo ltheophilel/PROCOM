@@ -11,6 +11,7 @@
 #include "serial/include/serial.h"
 
 #include "Moteur/include/moteur.h"
+#include "Moteur/include/cinematic.h"
 
 #include "camera/include/init_camera.h"
 #include "camera/include/camera.h"

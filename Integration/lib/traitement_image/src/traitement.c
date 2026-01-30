@@ -1,6 +1,7 @@
 #include "../include/traitement.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 
 
@@ -29,8 +30,68 @@ int seuillage(uint8_t *image,
     {
         for (int y = 0; y < width; y++)
         {
-            bw_image[x*width+y] = (image[x*width+y] > 128) ? 255 : 0;
+            bw_image[x*width+y] = (image[x*width+y] > SEUIL) ? 255 : 0;
         }
+    }
+    return 0;
+}
+
+int seuillage_pour_transmission(uint8_t *image,
+              uint8_t *coded_image,
+              int width, int height, uint16_t *len_coded_image)
+{
+    uint16_t cpt_color = 0;
+    uint8_t cpt_alternance_line = 0;
+    uint16_t index_coded_image = 0;
+    uint16_t max_data = 65535; // 2^16 -1;
+    uint16_t max_transmission_data = 1024;
+    unsigned char current_color = 0;
+    unsigned char former_color = 1; // commencer par du blanc
+    for (int x = 0; x < height; x++)
+    {
+        cpt_alternance_line = 0;
+        for (int y = 0; y < width; y++)
+        {
+            if (image[x*width+y] > SEUIL) current_color = 1;
+            else current_color = 0;
+            if (current_color == former_color && cpt_color < max_data) {
+                    cpt_color++;
+                } else {
+                    coded_image[index_coded_image++] = (cpt_color >> 8) & 0xFF; 
+                    coded_image[index_coded_image++] = cpt_color & 0xFF;     
+                    cpt_color = 1;
+                    cpt_alternance_line++;
+                    former_color = current_color;
+                }
+            *len_coded_image = index_coded_image;
+            if (*len_coded_image >= max_transmission_data) {
+                printf("Erreur : image codée trop grande pour le buffer.\n");
+                return -1;
+            }
+        }
+    }
+    coded_image[index_coded_image++] = (cpt_color >> 8) & 0xFF; 
+    coded_image[index_coded_image++] = cpt_color & 0xFF;
+    *len_coded_image = index_coded_image;
+    return 0;
+}
+
+int byte_to_bit_for_transmission(uint8_t *image,
+                              uint8_t *bit_image,
+                              int width, int height)
+{
+    int index_bit_image = 0;
+    for (int i = 0; i < width * height; i+=8)
+    {
+        bit_image[index_bit_image++] = 
+                                    ((image[i]   > SEUIL) << 7)
+                                    | ((image[i+1] > SEUIL) << 6)
+                                    | ((image[i+2] > SEUIL) << 5)
+                                    | ((image[i+3] > SEUIL) << 4)
+                                    | ((image[i+4] > SEUIL) << 3)
+                                    | ((image[i+5] > SEUIL) << 2)
+                                    | ((image[i+6] > SEUIL) << 1)
+                                    | ((image[i+7] > SEUIL) << 0);
     }
     return 0;
 }
@@ -93,8 +154,12 @@ int choix_direction_binaire(uint8_t *bw_image, int width, int height)
 }
 
 
-double trouver_angle(uint8_t *bw_image, int width, int height)
+double* trouver_angle(uint8_t *bw_image, int width, int height)
 {
+    double * apm = malloc(3 * sizeof(double));
+    apm[0] = 0.0;
+    apm[1] = 0.0;
+    apm[2] = INFINITY;
     long sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;
     long n = 0;
 
@@ -118,14 +183,14 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
     if (n < 2)
     {
         fprintf(stderr, "Pas assez de points pour calculer une droite.\n");
-        return 0.0; // no reliable angle
+        return apm; // no reliable angle
     }
 
     double denom = (n * sum_x2 - sum_x * sum_x);
     if (fabs(denom) < 1e-9)
     {
         fprintf(stderr, "Denominateur nul dans calcul de pente.\n");
-        return 0.0;
+        return apm;
     }
 
     double m = (n * sum_xy - sum_x * sum_y) / denom;
@@ -140,6 +205,8 @@ double trouver_angle(uint8_t *bw_image, int width, int height)
 
     double angle_avg = add_to_moving_average(angle, angle_buffer, &angle_index, MOVING_AVG_SIZE);
     // printf("Angle lissé = %.3f degrés\n", angle_avg);
-
-    return angle_avg;
+    apm[0] = angle_avg;
+    apm[1] = p;
+    apm[2] = m;
+    return apm;
 }

@@ -1,84 +1,122 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <title>Interface Microcontrôleur</title>
+    <meta charset="utf-8">
+    <title>Interface Microcontrôleur</title>
+    <style>
+        /* Un peu de CSS pour éviter que tout ne saute */
+        #global { display: flex; gap: 20px; }
+        #Gauche { width: 40%; }
+        #Droite { width: 60%; }
+        #output { 
+            background: #eee; 
+            padding: 10px; 
+            height: 300px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column;
+        }
+        canvas { background: #000; width: 100%; max-width: 640px; height: auto; }
+    </style>
 </head>
 <body>
-  <div>
     <h1>PROCOM Base Roulante</h1>
-  </div>
 
-  <div id="global">
-     <div style="float:left;width:40%;" id="Gauche">
-      <p>Envoyer une commande au microcontrôleur :</p>
-      <input id="cmd" placeholder="Commande à envoyer" onkeypress="if(event.key === 'Enter') send()">
-      <button onclick="send()">Envoyer</button>
-      <pre id="output"></pre>
-      <script>
+    <div id="global">
+        <div id="Gauche">
+            <p>Commande :</p>
+            <input id="cmd" placeholder="Entrée pour envoyer" style="width: 70%">
+            <button onclick="send()">Envoyer</button>
+            
+            <h3>Logs console :</h3>
+            <pre id="output"></pre>
+        </div>
+
+        <div id="Droite">
+            <p>Vitesse Moteur Droit (M0) : <b><span id="v_mot0">0</span></b></p>
+            <p>Vitesse Moteur Gauche (M1) : <b><span id="v_mot1">0</span></b></p>
+            <canvas id="camCanvas" width="80" height="60"></canvas> 
+            </div>
+    </div>
+
+    <script>
+        // --- Initialisation des variables ---
+        const canvas = document.getElementById('camCanvas');
+        const ctx = canvas.getContext('2d');
+        const out = document.getElementById("output");
+        const cmdInput = document.getElementById('cmd');
+
+        // Gestion de la touche Entrée sur l'input
+        cmdInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") send();
+        });
+
+        // --- Fonctions ---
         async function send() {
-          const command = document.getElementById('cmd').value;
-          await fetch('/send', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({command})
-          });
-          document.getElementById('cmd').value = '';
+            const command = cmdInput.value;
+            if(!command) return;
+            
+            try {
+                await fetch('/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command})
+                });
+                cmdInput.value = '';
+            } catch (e) { console.error("Erreur envoi:", e); }
         }
 
         async function readLoop() {
-          const res = await fetch("/read");
-          const json = await res.json();
+            try {
+                const res = await fetch("/read");
+                if (!res.ok) throw new Error("Server error");
+                const json = await res.json();
 
-          if (json.data) {
-              const out = document.getElementById("output");
-              json.data.forEach(line => {
-                  out.textContent = line + "\n" + out.textContent;
-              });
-              out.scrollTop = out.scrollHeight;
-          }
-          if (json.v_mot0 !== undefined) {
-              document.getElementById("v_mot0").textContent = json.v_mot0;
-          }
-          if (json.v_mot1 !== undefined) {
-              document.getElementById("v_mot1").textContent = json.v_mot1;
-          }
+                if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {
+                    json.data.forEach(line => {
+                        if (line.startsWith("IMG_DATA:")) {
+                            const base64Data = line.split("IMG_DATA:")[1];
+                            updateCanvasFromBase64(base64Data);
+                        } else {
+                            // On garde les 50 dernières lignes seulement pour la performance
+                            if (line.trim() !== "\x00\x00\x00\x00failed") { // Ignore les lignes vides
+                                const newText = document.createElement("div");
+                                newText.textContent = `> ${line}`;
+                                out.prepend(newText); 
+                                if(out.children.length > 50) out.lastChild.remove();
+                            }
+                        }
+                    });
+                }
+                // Dans la fonction readLoop()
+                // Mise à jour des moteurs (si présents)
+                if (json.v_mot1 !== null && json.v_mot1 !== undefined) {
+                    document.getElementById("v_mot1").textContent = json.v_mot1;
+                }
+                if (json.v_mot0 !== null && json.v_mot0 !== undefined) {
+                    document.getElementById("v_mot0").textContent = json.v_mot0;
+                }
 
-          setTimeout(readLoop, 200); // MaJ de la page toutes les X ms
-      }
+            } catch (e) { 
+                console.error("Erreur lecture:", e); 
+            } finally {
+                // On relance la boucle même en cas d'erreur, après un petit délai
+                setTimeout(readLoop, 50);
+            }
+        }
 
-      readLoop();
-      </script>
-     </div>
-     <div style="float:left;width:60%;" id="Droite">
-      <p>Vitesse du moteur droit : <span id="v_mot0">0</span></p>
-      <p>Vitesse du moteur gauche : <span id="v_mot1">0</span></p>
-      <!-- <img src="{{ url_for('static', filename='images/cam.png') }}" /> -->
-       <canvas id="camCanvas" width="640" height="480"></canvas>
+        function updateCanvasFromBase64(base64) {
+            const img = new Image();
+            img.onload = function() {
+                // Optionnel : lissage d'image (false pour garder l'aspect pixelisé du 80x60)
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+            img.src = "data:image/png;base64," + base64;
+        }
 
-      <script>
-          const canvas = document.getElementById('camCanvas');
-          const ctx = canvas.getContext('2d');
-
-          function updateCanvas() {
-              const img = new Image();
-              // On ajoute un "cache-buster" pour forcer le navigateur à recharger
-              img.src = "{{ url_for('static', filename='images/cam.png') }}" + "?t=" + new Date().getTime();
-
-              img.onload = function() {
-                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-              };
-              img.onerror = function() {
-                  console.error("Erreur de chargement de l'image");
-              };
-          }
-
-          // Rafraîchir toutes les 1/3 secondes (333 ms)
-          setInterval(updateCanvas, 333);
-      </script>
-     </div>
-  </div>
-
-  
+        // Lancement de la boucle
+        readLoop();
+    </script>
 </body>
 </html>

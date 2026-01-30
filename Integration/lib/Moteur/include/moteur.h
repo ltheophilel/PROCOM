@@ -41,9 +41,12 @@ extern moteur_config moteur1;
 // ----------------- PROTOTYPES -----------------
 
 void init_motor_and_encoder(moteur_config *motor);
+void init_all_motors_and_encoders();
 void set_motor_encoder(moteur_config *motor, uint speed_period_ms);
 void motor_set_pwm(moteur_config *motor, float level);
 void motor_set_pwm_brut(moteur_config *motor, uint16_t level);
+void motor_set_rpm(moteur_config *motor, float target_rpm);
 void motor_set_direction(moteur_config *motor, bool direction);
+void motor_define_direction_from_pwm(int v_mot_droit, int v_mot_gauche);
 float motor_get_speed(moteur_config *motor);
 uint32_t pwm_lookup_for_rpm(float target_rpm);

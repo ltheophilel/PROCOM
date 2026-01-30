@@ -14,6 +14,10 @@
 #ifndef DIGIT_RENDERER_H
 #define DIGIT_RENDERER_H
 
+
+#define I2C_SDA 26
+#define I2C_SCL 27
+
 typedef enum{
     DEGREE_CELSIUS,
     DEGREE_FAHRENHEIT,
@@ -34,5 +38,5 @@ void renderTest(void);
 void initDisplay(void);
 void clearDisplay(void);
 void renderIPString(const char* str);
-void initOLED(short SDA, short SCL);
+void initOLED();
 #endif

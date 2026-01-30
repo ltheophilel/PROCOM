@@ -4,8 +4,8 @@
 #define WIFI_SSID_iphone "Lathyos´s iPhone"
 #define WIFI_PASSWORD_iphone "0766020128"
 
-#define WIFI_SSID_maison "Livebox-DD76"
-#define WIFI_PASSWORD_maison "rGUZuDsVDzJgirwmRU"
+#define WIFI_SSID_maison "Freebox-77824A"
+#define WIFI_PASSWORD_maison "fz674qkdckqb9t9vqzfmn3"
 
 
 

@@ -5,40 +5,40 @@
 #include "pico/multicore.h"
 #include "pico/sync.h"
 
-#define V 0.25 // vitesse moyenne (m/s)
-#define F 12.5 // Hz
-#define T 0.25 // s
+#define I2C_SDA 26
+#define I2C_SCL 27
 
+#define Vmax 70 // RPM max des moteurs
+#define SENSIBILITE 5
 
-#define OPTIMIZED_SEND true
-
-static char  str_v_mot[LEN_GENERAL_MSG];
+static char  str_v_mot[32];
 static uint64_t t_us_core_0_beginning_loop;
 static uint64_t t_us_core_1_beginning_loop;
 int v_mot_droit;
 int v_mot_gauche;
 double angle;
-double p;
-double m;
 
 static uint8_t* outbuf1;
 static uint8_t* outbuf2;
 static bool toggle_buf = false;
-static uint8_t *frame_buffer, *bw_outbuf;
-uint8_t *coded_image;
-uint16_t len_coded_image;
 
 static mutex_t multicore_lock;
 
-// échange les buffers d'image entre les deux cœurs   
 static uint8_t** get_outbuf_from_core(bool core) {
+    // mutex_enter_blocking(&multicore_lock);
+    // printf("Core %d: Getting output buffer (toggle_buf=%d)\n", core, toggle_buf);
+    // uint64_t t_us = time_us_64();
+    // printf("Core %d: time (us): %llu\n", core, t_us);
+
     uint8_t** outbuf = (toggle_buf == core) ? &outbuf1 : &outbuf2;
+    // mutex_exit(&multicore_lock);
     return outbuf;
 }
-// gestion de la synchronisation entre les deux cœurs
+
 static bool core_0_ready = false;
 static bool core_1_ready = false;
-static void core_ready_to_swap(bool core, bool ready) {
+static void core_ready_to_swap(bool core, bool ready)
+{
     switch (core) {
         case 0:
             core_0_ready = ready;
@@ -56,17 +56,20 @@ static void core_ready_to_swap(bool core, bool ready) {
     }
 }
 
-void interpretCommand(TCP_SERVER_T *state, const char* command) {
+void interpretCommand(TCP_SERVER_T *state, const char* command)
+{
     // Implémentez ici l'interprétation des commandes reçues
     command = trim_whitespace_divers((char *)command);
     printf("Interpreted Command: '%s'\n", command);
     if (strcmp(command, "LED ON") == 0)
     {
         pico_set_led(true);
+        // tcp_server_send(state, "LED is ON", PACKET_TYPE_GENERAL);
     }
     else if (strcmp(command, "LED OFF") == 0)
     {
         pico_set_led(false);
+        // tcp_server_send(state, "LED is OFF", PACKET_TYPE_GENERAL);
     }
     // else if (estNombreEntier(command))
     // {
@@ -81,15 +84,14 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     // }
 }
 
-static int cpt_envoi = 0;
-
-void core1_entry() {
+void core1_entry()
+{
     // Initialisation Wi-Fi
     err_t connect_success = wifi_auto_connect();
     if (connect_success != ERR_OK)
     {
         printf("Échec de la connexion Wi-Fi.\n");
-        pico_blink_led(10, 50); // Clignote rapidement pour indiquer l'erreur
+        pico_blink_led(10, 100); // Clignote rapidement pour indiquer l'erreur
         pico_set_led(false); 
         // return 1;
     } else pico_set_led(true);
@@ -99,27 +101,29 @@ void core1_entry() {
     if (connect_success == ERR_OK) state = tcp_server_start();
 
     // Initialisation OLED
-    initOLED();
+    initOLED(I2C_SDA, I2C_SCL);
     renderSymbol(RPI,1,56); // Render the Rpi Symbol
     renderIPString(IP4ADDR);
-    if (connect_success == ERR_OK) {
-        while (true) {
-            cpt_envoi++;
-            t_us_core_1_beginning_loop = time_us_64();
-            
-            int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
+    if (connect_success == ERR_OK)
+        {
+        while (true)
+        {
+                t_us_core_1_beginning_loop = time_us_64();
+                
+                int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
 
-            if (received > 0) {
-                // Si message reçu
-                // Ajouter un '\0' pour créer une chaîne C
-                rx_buffer[received] = '\0';
-                printf("Reçu du client : %s\n", rx_buffer);
-                interpretCommand(state, (const char *)rx_buffer);
-            }
-            
-            err_t err;
-            if (!OPTIMIZED_SEND) {
+                if (received > 0)
+                {
+                    // Ajouter un '\0' pour créer une chaîne C
+                    rx_buffer[received] = '\0';
+
+                    printf("Reçu du client : %s\n", rx_buffer);
+
+                    // Réponse simple : renvoyer exactement ce qu'on a reçu
+                    interpretCommand(state, (const char *)rx_buffer);
+                }
                 sleep_ms(10);
+
                 snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
                 tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
                 snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
@@ -127,45 +131,24 @@ void core1_entry() {
                 snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
                 tcp_server_send(state, str_v_mot, PACKET_TYPE_GENERAL);
 
-                err = tcp_send_large_img(state, *get_outbuf_from_core(1), MAX_WIDTH*MAX_HEIGHT);
-            } else {
-                printf("Preparing to send all-in-one packet...\n");
-                sleep_ms(20);
-                // snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
-                snprintf(str_v_mot, sizeof(str_v_mot), "%u", cpt_envoi);
-                // seuillage_pour_transmission(*get_outbuf_from_core(1),
-                //                             coded_image,
-                //                             MAX_WIDTH, MAX_HEIGHT, &len_coded_image);
-                byte_to_bit_for_transmission(*get_outbuf_from_core(1),
-                                            coded_image,
-                                            MAX_WIDTH, MAX_HEIGHT);
-                
-                // printf("Coded image length: %d bytes\n", len_coded_image);
-                printf("Sending all-in-one packet...\n");
-                err = tcp_server_send_all_in_one(state,
-                                            str_v_mot,
-                                            v_mot_droit,
-                                            v_mot_gauche,
-                                            p,
-                                            m,
-                                            coded_image,
-                                            600); //len_coded_image);
-            }
+                err_t err = tcp_send_large_img(state, *get_outbuf_from_core(1), MAX_WIDTH*MAX_HEIGHT);
+                printf("TCP send time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
+                if (err != ERR_OK)
+                {
+                    printf("Erreur d'envoi de l'image : %d\n", err);
+                }
+                uint8_t** pointer_to_outbuf = get_outbuf_from_core(1);
+                core_ready_to_swap(1, true);
+                // printf("Core 1: Waiting for swap...\n");
+                while (pointer_to_outbuf == get_outbuf_from_core(1))
+                {
+                    sleep_ms(10);
+                    // tight_loop_contents();
+                }
+                // printf("Core 1: Swap done\n");
+                printf("Core 1: Processing time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
             
-            // err_t err = tcp_send_large_img(state, bw_outbuf, MAX_WIDTH*MAX_HEIGHT);
-            printf("TCP send time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
-            if (err != ERR_OK) {
-                printf("Erreur d'envoi de l'image : %d\n", err);
-            }
-            uint8_t** pointer_to_outbuf = get_outbuf_from_core(1);
-            core_ready_to_swap(1, true);
-            // printf("Core 1: Waiting for swap...\n");
-            while (pointer_to_outbuf == get_outbuf_from_core(1)) {
-                sleep_ms(10);
-            }
-            printf("Core 1: Processing time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
-        
-        tight_loop_contents();
+            tight_loop_contents();
         }
     }
 }
@@ -175,7 +158,12 @@ void core0_entry()
 {
     // Initialisation moteurs
     printf("Initialisation des moteurs\n");
-    init_all_motors_and_encoders();
+    init_motor_and_encoder(&moteur0);
+    init_motor_and_encoder(&moteur1);
+    motor_set_direction(&moteur0, 1);
+    motor_set_direction(&moteur1, 0);
+    motor_set_pwm(&moteur0, 0.);
+    motor_set_pwm(&moteur1, 0.);
 
     /* INITIALISATION CAMERA */
     struct camera camera;
@@ -183,20 +171,20 @@ void core0_entry()
     struct camera_platform_config platform = create_camera_platform_config();
 
     /* Choix Format */
-    uint16_t width, height;
+    uint16_t width_temp, height_temp;
     OV7670_size size;
     int division = 0; // 0 : DIV 8, 1 : DIV 4, ...
-    int format_out = choix_format(division, &width, &height, &size);
+    int format_out = choix_format(division, &width_temp, &height_temp, &size);
+    const uint16_t width = width_temp;
+    const uint16_t height = height_temp;
 
     printf("Camera to be initialised\n");
-    if (camera_init(&camera, &platform, size)) {
-        printf("Erreur d'initialisation de la caméra\n"); 
-        pico_blink_led(5, 500);
-        // return 1;
-    } 
+    if (camera_init(&camera, &platform, size)) printf("Erreur d'initialisation de la caméra\n"); // return 1;
     printf("Camera initialised\n");
+    motor_set_pwm(&moteur1, 0.);
 
     /* Creation Buffers Camera */
+    static uint8_t *frame_buffer, *bw_outbuf;
     creation_buffers_camera(&frame_buffer, get_outbuf_from_core(0),
                            &bw_outbuf, width, height);
 
@@ -215,8 +203,11 @@ void core0_entry()
         core_ready_to_swap(0, false);
         camera_capture_blocking(&camera, frame_buffer, width, height);
         // printf("Capture time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
+        // Header P5 : format et dimensions de l'image
+        // printf("P5\n%d %d\n255\n", width, height);
 
         // Extraire Y seulement
+
         for (int px = 0; px < width * height; px++)
             (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
 
@@ -224,23 +215,36 @@ void core0_entry()
         int seuillage_out = seuillage(*pointer_to_outbuf, bw_outbuf,
                                       width, height);
         core_ready_to_swap(0, true);
-        double* apm = trouver_angle(bw_outbuf, width, height);
-        angle = apm[0];
-        p = apm[1];
-        m = apm[2];
-        free(apm);
-        angle = PI*angle/180;
-        
-        int* vitesses = get_vitesse_mot(V, angle, T); // en rpm
-        v_mot_droit = vitesses[0];
-        v_mot_gauche = vitesses[1];
-        printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
-               angle, v_mot_droit, v_mot_gauche);
-        
-        motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
-        motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)/2.0); // /2 car erreur dans rpm_lookup_table.h
-        motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)/2.0); // *signe pour avoir la valeur absolue
-        
+
+        /* Version sinus */
+        angle = PI*trouver_angle(bw_outbuf, width, height)/180;
+        // v_mot_droit = (Vmax/2)*(1+sin(angle));
+        // v_mot_gauche = (Vmax/2)*(1-sin(angle));
+        double projection_inter = 1/(SENSIBILITE*tan(angle))*(1/(SENSIBILITE*tan(angle)));
+        // printf("Projection inter: %.3f\n", projection_inter);
+        double projection = signe(angle)*sqrt(1/(1+projection_inter));
+        // printf("Projection: %.3f\n", projection);
+        v_mot_droit = (Vmax/2)*(1+projection);
+        v_mot_gauche = (Vmax/2)*(1-projection);
+
+        // v_mot_droit = Vmax;
+        // v_mot_gauche = Vmax;
+
+        /* Version lineaire */
+        // double angle = trouver_angle(bw_outbuf, width, height);
+        // int v_mot_droit = Vmax/2*(1+angle/90);
+        // int v_mot_gauche = Vmax/2*(1-angle/90);
+
+        // printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
+        //        angle, v_mot_droit, v_mot_gauche);
+        motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(v_mot_droit));
+        motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(v_mot_gauche));
+        // printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
+        //        pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
+        // printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
+            //    pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
+        // motor_set_pwm(&moteur0, 50+v_mot_droit/2);
+        // motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
         printf("Core 0: Processing time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
 
         // FPS max → pas de pause
@@ -261,7 +265,6 @@ void core0_entry()
 int main() {
     stdio_init_all();
     sleep_ms(2000);
-    coded_image = (uint8_t*)malloc(1024*sizeof(uint8_t)); // Taille max possible
     mutex_init(&multicore_lock);
     multicore_launch_core1(core1_entry);
     core0_entry();
