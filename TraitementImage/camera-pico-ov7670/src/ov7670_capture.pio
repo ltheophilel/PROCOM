@@ -1,21 +1,22 @@
 .program ov7670_capture
-
 .wrap_target
-    wait 0 pin 1        ; VSYNC low
-    wait 1 pin 1        ; VSYNC high
+
+    ; attendre début d'image : VSYNC
+    wait 0 gpio 22        ;
+    wait 1 gpio 22        ;
 
 line_wait:
-    wait 1 pin 0        ; HREF = 1
+    wait 1 gpio 9   ; debut de ligne : HREF = 1
 
 pixel_loop:
-    wait 1 pin 0        ; PCLK rising
-    in pins, 8
+    wait 1 pin 0         ; PCLK rising (GPIO 10)
+    in pins, 8           ; lire D0..D7 (GPIO 14..21)
     wait 0 pin 0
 
-    wait 1 pin 0
-    in pins, 8
-    wait 0 pin 0
+    wait 1 pin 0         ; on laisse passer les couleurs
+    wait 0 pin 0         ; (low byte)
 
-    jmp pin pixel_loop
+    jmp pin pixel_loop  ; tant que HREF = 1
     jmp line_wait
+
 .wrap

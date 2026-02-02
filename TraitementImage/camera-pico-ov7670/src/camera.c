@@ -115,8 +115,8 @@ int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_
     int col = 0;
 
     // Attendre VSYNC (début d’image)
-    while (!gpio_get(camera->platform->vsync_pin)) {}
-    while ( gpio_get(camera->platform->vsync_pin)) {}
+    while (!gpio_get(camera->platform->vsync_pin)) {} // 0
+    while ( gpio_get(camera->platform->vsync_pin)) {} // 1
 
     while (row < height)
     {
@@ -150,7 +150,7 @@ int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_
                 while (gpio_get(camera->platform->pclk_pin)) {}
                 while (!gpio_get(camera->platform->pclk_pin)) {}
 
-                // ---- READ LOW BYTE ----
+                /* // ---- READ LOW BYTE ----
                 uint8_t low =
                     (gpio_get(camera->platform->data_pins[7]) << 7) |
                     (gpio_get(camera->platform->data_pins[6]) << 6) |
@@ -159,11 +159,11 @@ int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_
                     (gpio_get(camera->platform->data_pins[3]) << 3) |
                     (gpio_get(camera->platform->data_pins[2]) << 2) |
                     (gpio_get(camera->platform->data_pins[1]) << 1) |
-                    (gpio_get(camera->platform->data_pins[0]));
+                    (gpio_get(camera->platform->data_pins[0])); */
 
-                int idx = (row * width + col) * 2;
+                int idx = (row * width + col);
                 buf[idx]     = high;
-                buf[idx + 1] = low;
+                // buf[idx + 1] = low;
 
                 col++;
             }
@@ -210,8 +210,8 @@ void camera_dma_start(uint8_t *framebuffer, size_t frame_size)
     dma_channel_config cfg =
         dma_channel_get_default_config(camera_dma_chan);
 
-    channel_config_set_transfer_data_size(&cfg, DMA_SIZE_8);
-    channel_config_set_read_increment(&cfg, false);
+    channel_config_set_transfer_data_size(&cfg, DMA_SIZE_8); // 8 bits
+    channel_config_set_read_increment(&cfg, false); // FIFO
     channel_config_set_write_increment(&cfg, true);
     channel_config_set_dreq(
         &cfg, pio_get_dreq(camera_pio, camera_sm, false));

@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
-
 // Buffer for moving average of angle
 static double angle_buffer[MOVING_AVG_SIZE] = {0};
 static int angle_index = 0;
@@ -172,7 +170,7 @@ int ligne_detectee(uint8_t *bw_image, int width, int height)
 
 void chercher_ligne()
 {
-    int passage = 0;
+/*     int passage = 0;
     int ligne_trouvee = 0;
 
     // Reculer un peu pour revenir près de la ligne
@@ -211,5 +209,5 @@ void chercher_ligne()
             // Reculer de 5 cm
             passage = 0.0;
         }
-    }
+    } */
 }

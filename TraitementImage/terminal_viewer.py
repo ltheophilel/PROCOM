@@ -6,14 +6,14 @@ Lit le flux série du Pico octet par octet et affiche
 les caractères ASCII dans le terminal. Les octets non
 imprimables sont remplacés par '.'
 
-Fait pour Linux
 """
 
 import serial
 import sys
 
 # --- CONFIGURATION ---
-PORT = "COM13"#"/dev/ttyACM0"  # remplace si nécessaire
+# PORT = "COM13" # remplace si nécessaire
+PORT = "/dev/ttyACM0"  # remplace si nécessaire
 BAUD = 115200           # vitesse série
 TIMEOUT = 0.1           # en secondes
 
