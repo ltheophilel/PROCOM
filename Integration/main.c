@@ -13,7 +13,10 @@ static uint64_t t_us_core_0_beginning_loop;
 static uint64_t t_us_core_1_beginning_loop;
 int v_mot_droit;
 int v_mot_gauche;
-double angle;
+double angle;*
+uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
+bool LIGNE_DETECTEE = true; // Indique si la ligne est détectée ou non
+
 
 static uint8_t* outbuf1;
 static uint8_t* outbuf2;
@@ -213,27 +216,49 @@ void core0_entry()
                                       width, height);
         core_ready_to_swap(0, true);
 
-        /* Version sinus */
-        angle = PI*trouver_angle(bw_outbuf, width, height)/180;
-        // v_mot_droit = (Vmax/2)*(1+sin(angle));
-        // v_mot_gauche = (Vmax/2)*(1-sin(angle));
-        double projection_inter = 1/(SENSIBILITE*tan(angle))*(1/(SENSIBILITE*tan(angle)));
-        printf("Projection inter: %.3f\n", projection_inter);
-        double projection = signe(angle)*sqrt(1/(1+projection_inter));
-        printf("Projection: %.3f\n", projection);
-        v_mot_droit = (Vmax/2)*(1+projection);
-        v_mot_gauche = (Vmax/2)*(1-projection);
+        if (ligne_detectee(bw_outbuf, width, height) == 0)
+        {
+            // Ligne non détectée
+            if (!LIGNE_DETECTEE)
+            {
+                // Déjà en mode recherche de ligne
+                uint32_t maintenant = time_us_64();
+                uint32_t time = maintenant / 1000 - debut / 1000;
+                chercher_ligne(time);
+            }
+            else
+            {
+                // Passage en mode recherche de ligne
+                debut = time_us_64();
+                chercher_ligne(0);
+            }
+            LIGNE_DETECTEE = false
+        }
+        else
+        {
+            LIGNE_DETECTEE = true
+            /* Version sinus */
+            angle = PI*trouver_angle(bw_outbuf, width, height)/180;
+            // v_mot_droit = (Vmax/2)*(1+sin(angle));
+            // v_mot_gauche = (Vmax/2)*(1-sin(angle));
+            double projection_inter = 1/(SENSIBILITE*tan(angle))*(1/(SENSIBILITE*tan(angle)));
+            printf("Projection inter: %.3f\n", projection_inter);
+            double projection = signe(angle)*sqrt(1/(1+projection_inter));
+            printf("Projection: %.3f\n", projection);
+            v_mot_droit = (Vmax/2)*(1+projection);
+            v_mot_gauche = (Vmax/2)*(1-projection);
 
-        // v_mot_droit = Vmax;
-        // v_mot_gauche = Vmax;
+            // v_mot_droit = Vmax;
+            // v_mot_gauche = Vmax;
 
-        /* Version lineaire */
-        // double angle = trouver_angle(bw_outbuf, width, height);
-        // int v_mot_droit = Vmax/2*(1+angle/90);
-        // int v_mot_gauche = Vmax/2*(1-angle/90);
+            /* Version lineaire */
+            // double angle = trouver_angle(bw_outbuf, width, height);
+            // int v_mot_droit = Vmax/2*(1+angle/90);
+            // int v_mot_gauche = Vmax/2*(1-angle/90);
 
-        printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
-               angle, v_mot_droit, v_mot_gauche);
+            printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
+                angle, v_mot_droit, v_mot_gauche);
+        }
         motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(v_mot_droit));
         motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(v_mot_gauche));
         printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",

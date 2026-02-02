@@ -7,6 +7,7 @@
 // Buffer for moving average of angle
 static double angle_buffer[MOVING_AVG_SIZE] = {0};
 static int angle_index = 0;
+bool etat_recherche = 0; // 0: reculer, 1: tourner
 
 double add_to_moving_average(double value, double *buffer, int *index, int size)
 {
@@ -21,19 +22,40 @@ double add_to_moving_average(double value, double *buffer, int *index, int size)
     return sum / size;
 }
 
-int seuillage(uint8_t *image,
-              uint8_t *bw_image,
-              int width, int height)
-{
-    for (int x = 0; x < height; x++)
-    {
-        for (int y = 0; y < width; y++)
-        {
-            bw_image[x*width+y] = (image[x*width+y] > 128) ? 255 : 0;
+int seuillage(uint8_t *image, uint8_t *bw_image, int width, int height) {
+    // 1. Seuillage classique
+    for (int x = 0; x < height; x++) {
+        for (int y = 0; y < width; y++) {
+            bw_image[x * width + y] = (image[x * width + y] > 128) ? 255 : 0;
+        }
+    }
+
+    // 2. Suppression des bandes noires horizontales trop fines (épaisseur < 3)
+    for (int y = 0; y < width; y++) {  // Pour chaque colonne
+        int x = 0;
+        while (x < height) {
+            if (bw_image[x * width + y] == 0) {  // Si pixel noir
+                int start = x;
+                // Mesure la hauteur de la bande noire (combien de lignes consécutives)
+                while (x < height && bw_image[x * width + y] == 0) {
+                    x++;
+                }
+                int band_height = x - start;
+                // Si l'épaisseur est inférieure à 3, on met en blanc
+                if (band_height < 3) {
+                    for (int i = start; i < x; i++) {
+                        bw_image[i * width + y] = 255;
+                    }
+                }
+            } else {
+                x++;
+            }
         }
     }
     return 0;
 }
+
+
 
 int choix_direction_binaire(uint8_t *bw_image, int width, int height)
 {
@@ -170,46 +192,36 @@ int ligne_detectee(uint8_t *bw_image, int width, int height)
     }
 }
 
-void chercher_ligne()
-{
-    int passage = 0;
-    int ligne_trouvee = 0;
-
-    // Reculer un peu pour revenir près de la ligne
-    motor_set_direction(&moteur0, 0);
-    motor_set_direction(&moteur1, 1);
-
-    motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(V_ROTATION*5));
-    motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION*5));
-
-    sleep_ms(500); // Reculer pendant 0.5 seconde
-
-    motor_set_pwm_brut(&moteur0, 0);
-    motor_set_pwm_brut(&moteur1, 0);
-
-    motor_set_direction(&moteur0, 1);
-    motor_set_direction(&moteur1, 0);
-
-    while (1)
+void chercher_ligne(uint32_t time) {
+    time = time % 2000; // Cycle de 2 secondes
+    if (time < 500)
     {
-        // 1. Vérifier si la ligne est détectée
-        if (ligne_detectee(image_bw, MAX_WIDTH, MAX_HEIGHT))
-        {
-            return; // ligne trouvée, sortir de la fonction
-        }
+        etat_recherche = 0;
+    }
+    else
+    {
+        etat_recherche = 1;
+    }
 
-        // 2. Tourner légèrement à droite
-        motor_set_pwm_brut(&moteur0, 0);
-        motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
+    switch (etat_recherche) {
+        case 0:
+            // Reculer un peu pour revenir près de la ligne
+            motor_set_direction(&moteur0, 0);
+            motor_set_direction(&moteur1, 1);
+            motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(V_ROTATION*5));
+            motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION*5));
+            break;
 
-        passage++;
-        sleep_ms(100); // Attendre un peu pour que le robot tourne
+        case 1:
+            // Arrêter les moteurs après le recul
+            motor_set_pwm_brut(&moteur0, 0);
+            motor_set_pwm_brut(&moteur1, 0);
+            motor_set_direction(&moteur0, 1);
+            motor_set_direction(&moteur1, 0);
 
-        // 3. Si on a fait un tour complet (360°), reculer un peu et recommencer
-        if (passage >= 100)
-        {
-            // Reculer de 5 cm
-            passage = 0.0;
-        }
+            // Tourner légèrement à droite
+            motor_set_pwm_brut(&moteur0, 0);
+            motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
+            break;
     }
 }
