@@ -257,15 +257,16 @@ void core0_entry()
 
             printf("Angle: %.3f radians, Vitesse Moteur Droit: %d RPM, Vitesse Moteur Gauche: %d RPM\n",
                 angle, v_mot_droit, v_mot_gauche);
+            motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(v_mot_droit));
+            motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(v_mot_gauche));
+            printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
+                pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
+            // printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
+                //    pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
+            // motor_set_pwm(&moteur0, 50+v_mot_droit/2);
+            // motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
         }
-        motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(v_mot_droit));
-        motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(v_mot_gauche));
-        printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
-               pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
-        // printf("PWM Moteur Droit: %d, PWM Moteur Gauche: %d\n",
-            //    pwm_lookup_for_rpm(v_mot_droit), pwm_lookup_for_rpm(v_mot_gauche));
-        // motor_set_pwm(&moteur0, 50+v_mot_droit/2);
-        // motor_set_pwm(&moteur1, 50+v_mot_gauche/2);
+        
         printf("Core 0: Processing time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
 
         // FPS max → pas de pause
