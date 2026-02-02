@@ -207,9 +207,8 @@ void core0_entry()
         // printf("P5\n%d %d\n255\n", width, height);
 
         // Extraire Y seulement
-
-        for (int px = 0; px < width * height; px++)
-            (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
+        // for (int px = 0; px < width * height; px++)
+        //     (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
 
         // Traitement
         int seuillage_out = seuillage(*pointer_to_outbuf, bw_outbuf,

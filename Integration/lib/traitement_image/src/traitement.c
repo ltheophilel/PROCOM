@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
-
 // Buffer for moving average of angle
 static double angle_buffer[MOVING_AVG_SIZE] = {0};
 static int angle_index = 0;
@@ -192,6 +190,7 @@ int ligne_detectee(uint8_t *bw_image, int width, int height)
     }
 }
 
+// Version gardée (HEAD) — tes changements ont priorité
 void chercher_ligne(uint32_t time) {
     time = time % 2000; // Cycle de 2 secondes
     if (time < 500)
@@ -225,3 +224,51 @@ void chercher_ligne(uint32_t time) {
             break;
     }
 }
+
+/* Version entrante (référence) :
+   Conservée en lecture seule (#if 0) pour ne rien perdre de l'historique */
+#if 0
+void chercher_ligne()
+{
+    int passage = 0;
+    int ligne_trouvee = 0;
+
+    // Reculer un peu pour revenir près de la ligne
+    motor_set_direction(&moteur0, 0);
+    motor_set_direction(&moteur1, 1);
+
+    motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(V_ROTATION*5));
+    motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION*5));
+
+    sleep_ms(500); // Reculer pendant 0.5 seconde
+
+    motor_set_pwm_brut(&moteur0, 0);
+    motor_set_pwm_brut(&moteur1, 0);
+
+    motor_set_direction(&moteur0, 1);
+    motor_set_direction(&moteur1, 0);
+
+    while (1)
+    {
+        // 1. Vérifier si la ligne est détectée
+        if (ligne_detectee(image_bw, MAX_WIDTH, MAX_HEIGHT))
+        {
+            return; // ligne trouvée, sortir de la fonction
+        }
+
+        // 2. Tourner légèrement à droite
+        motor_set_pwm_brut(&moteur0, 0);
+        motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
+
+        passage++;
+        sleep_ms(100); // Attendre un peu pour que le robot tourne
+
+        // 3. Si on a fait un tour complet (360°), reculer un peu et recommencer
+        if (passage >= 100)
+        {
+            // Reculer de 5 cm
+            passage = 0.0;
+        }
+    }
+}
+#endif
