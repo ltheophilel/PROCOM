@@ -20,11 +20,11 @@ double add_to_moving_average(double value, double *buffer, int *index, int size)
     return sum / size;
 }
 
-int seuillage(uint8_t *image, uint8_t *bw_image, int width, int height) {
+int seuillage(uint8_t *image, uint8_t *bw_image, int width, int height, short SEUIL) {
     // 1. Seuillage classique
     for (int x = 0; x < height; x++) {
         for (int y = 0; y < width; y++) {
-            bw_image[x * width + y] = (image[x * width + y] > 128) ? 255 : 0;
+            bw_image[x * width + y] = (image[x * width + y] > SEUIL) ? 255 : 0;
         }
     }
 
@@ -55,7 +55,7 @@ int seuillage(uint8_t *image, uint8_t *bw_image, int width, int height) {
 
 int seuillage_pour_transmission(uint8_t *image,
               uint8_t *coded_image,
-              int width, int height, uint16_t *len_coded_image)
+              int width, int height, uint16_t *len_coded_image, short SEUIL)
 {
     uint16_t cpt_color = 0;
     uint8_t cpt_alternance_line = 0;
@@ -95,7 +95,7 @@ int seuillage_pour_transmission(uint8_t *image,
 
 int byte_to_bit_for_transmission(uint8_t *image,
                               uint8_t *bit_image,
-                              int width, int height)
+                              int width, int height, short SEUIL)
 {
     int index_bit_image = 0;
     for (int i = 0; i < width * height; i+=8)

@@ -64,7 +64,20 @@ class LEN_DATA(Enum):
     LEN_MOT = 2
     LEN_FLOAT = 8
 
+def correct_perspective(image):
+    # Calculer la matrice de transformation
+    # Points sources (exemple : coins de l'image distordue)
+    source_points = [(0, 0), (80, 0), (0, 60), (80, 60)]
 
+    # Points de destination (exemple : coins de l'image redressée)
+    destination_points = [(0, 0), (140, 0), (30, 190), (110, 190)]
+
+    M = cv2.getPerspectiveTransform(np.float32(source_points), np.float32(destination_points))
+
+    # Appliquer la transformation
+    corrected = cv2.warpPerspective(image, M, (140, 190))
+
+    return corrected
 
 def receive_all_in_one(packet_data):
     global data, rx_queue, p, m
@@ -163,6 +176,7 @@ def receive_data(sock):
 def decode_bw_image(raw_bytes, width=WIDTH, height=HEIGHT):
     arr = np.frombuffer(raw_bytes, dtype=np.uint8)
     img = arr.reshape((height, width))  # format H×W
+    # img = correct_perspective(img)
     return img
 
 

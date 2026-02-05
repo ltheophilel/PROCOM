@@ -12,12 +12,13 @@
 
 #define OPTIMIZED_SEND true
 
-short pourcentage_Vmax = 25; // en pourcentage de Vmax (environ vitesse en cm/s)
+short pourcentage_Vmax = 35; // en pourcentage de Vmax (environ vitesse en cm/s)
 bool pause = true;
-float T = 0.25f; // temps pour faire un virage (s)
-float P = 1.0f; // gain proportionnel pour la correction d'angle (T = P * (pourcentage_Vmax * Vmax / 100.0f) / 1000.0f; // en secondes)
-bool mode_P = false; // true : mode proportionnel, false : mode fixe
+float T = 0.50f; // temps pour faire un virage (s)
+float P = 3.0f; // gain proportionnel pour la correction d'angle (T = P * (pourcentage_Vmax * Vmax / 100.0f); // en secondes)
+bool mode_P = true; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
+short SEUIL = 128; // seuil de binarisation pour le traitement d'image
 
 static char  str_v_mot[LEN_GENERAL_MSG];
 static uint64_t t_us_core_0_beginning_loop;
@@ -112,6 +113,11 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
         mode_P = true;
         snprintf(general_msg, LEN_GENERAL_MSG, "P set to %.3f", P);
     }
+    else if (command[0] == 'S' && estNombreEntier(command + 1))
+    {
+        SEUIL = (short)atoi(command + 1); 
+        snprintf(general_msg, LEN_GENERAL_MSG, "SEUIL set to %d", SEUIL);
+    }
     else
     {
         // Réponse simple : renvoyer ce qu'on a reçu
@@ -172,10 +178,10 @@ void core1_entry() {
                 // }
                 // seuillage_pour_transmission(*get_outbuf_from_core(1),
                 //                             coded_image,
-                //                             MAX_WIDTH, MAX_HEIGHT, &len_coded_image); // RLE
+                //                             MAX_WIDTH, MAX_HEIGHT, &len_coded_image, SEUIL); // RLE
                 byte_to_bit_for_transmission(*get_outbuf_from_core(1),
                                             coded_image,
-                                            MAX_WIDTH, MAX_HEIGHT);
+                                            MAX_WIDTH, MAX_HEIGHT, SEUIL);
                 
                 // printf("Coded image length: %d bytes\n", len_coded_image);
                 printf("Sending all-in-one packet...\n");
@@ -258,10 +264,10 @@ void core0_entry()
         // for (int px = 0; px < width * height; px++)
         //     (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
         *get_outbuf_from_core(0) = frame_buffer;
-
+        
         // Traitement
         int seuillage_out = seuillage(*pointer_to_outbuf, bw_outbuf,
-                                      width, height);
+                                      width, height, SEUIL);
         core_ready_to_swap(0, true);
 
         if (ligne_detectee(bw_outbuf, width, height) == 0)
@@ -272,13 +278,13 @@ void core0_entry()
                 // Déjà en mode recherche de ligne
                 uint32_t maintenant = time_us_64();
                 uint32_t time = maintenant / 1000 - debut / 1000;
-                chercher_ligne(time);
+                if (!pause) chercher_ligne(time);
             }
             else
             {
                 // Passage en mode recherche de ligne
                 debut = time_us_64();
-                chercher_ligne(0);
+                if (!pause) chercher_ligne(0);
             }
             LIGNE_DETECTEE = false;
         }
@@ -293,7 +299,7 @@ void core0_entry()
             angle = PI*angle/180;
             
             if (mode_P) {
-                T = P * (pourcentage_Vmax * Vmax / 100.0f) / 1000.0f; // en secondes
+                T = P * (pourcentage_Vmax * Vmax / 100.0f); // en secondes
             }
             int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
             v_mot_droit = vitesses[0];

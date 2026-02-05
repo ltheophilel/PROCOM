@@ -9,7 +9,7 @@
 #include "pico/stdlib.h"
 #include "camera.h"
 
-/* // BRANCHEMENTS :
+ // BRANCHEMENTS :
 // ! GP pins
 #define CAMERA_XCLK_PIN 21
 #define CAMERA_PCLK_PIN 10
@@ -26,8 +26,9 @@
 #define CAMERA_D4 12
 #define CAMERA_D5 19
 #define CAMERA_D6 11
-#define CAMERA_D7 20 */
+#define CAMERA_D7 20 
 
+/*
 // BRANCHEMENTS : 
 // ! GP pins
 #define CAMERA_HREF_PIN 9
@@ -46,7 +47,7 @@
 #define CAMERA_VSYNC_PIN 22
 #define CAMERA_SDA      26
 #define CAMERA_SCL      27
-
+*/
 #define I2C_SDA 26
 #define I2C_SCL 27
 
