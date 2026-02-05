@@ -41,6 +41,11 @@ extern moteur_config moteur1;
 // ----------------- VARIABLES GLOBALES -----------------
 
 #define V_ROTATION 10  // Vitesse de rotation en RPM lors de la recherche de ligne
+enum etat_recherche_ligne {
+    RECULER = 0,
+    TOURNER_DROITE = 1,
+    TOURNER_GAUCHE = 2
+};
 
 // ----------------- PROTOTYPES -----------------
 
@@ -54,6 +59,6 @@ void motor_set_direction(moteur_config *motor, bool direction);
 void motor_define_direction_from_pwm(int v_mot_droit, int v_mot_gauche);
 float motor_get_speed(moteur_config *motor);
 uint32_t pwm_lookup_for_rpm(float target_rpm);
-void chercher_ligne(uint32_t time);
+void chercher_ligne(uint32_t time, double angle);
 
 #endif

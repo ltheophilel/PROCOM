@@ -278,13 +278,13 @@ void core0_entry()
                 // Déjà en mode recherche de ligne
                 uint32_t maintenant = time_us_64();
                 uint32_t time = maintenant / 1000 - debut / 1000;
-                if (!pause) chercher_ligne(time);
+                if (!pause) chercher_ligne(time, angle);
             }
             else
             {
                 // Passage en mode recherche de ligne
                 debut = time_us_64();
-                if (!pause) chercher_ligne(0);
+                if (!pause) chercher_ligne(0, angle);
             }
             LIGNE_DETECTEE = false;
         }
