@@ -26,9 +26,7 @@ moteur_config moteur1 = {
 
 static moteur_config* moteurs_actifs[MAX_MOTEURS];
 static int moteurs_count = 0;
-
-bool etat_recherche = 0; // 0: reculer, 1: tourner
-
+enum etat_recherche_ligne etat_recherche = RECULER;
 
 // ----------------- ISR DE L'ENCODEUR -----------------
 // Appelée à chaque front montant sur pin_SA
@@ -220,34 +218,39 @@ uint32_t pwm_lookup_for_rpm(float target_rpm) {
     return PWM_WRAP;
 }
 
-void chercher_ligne(uint32_t time) {
+void chercher_ligne(uint32_t time, double angle) {
     time = time % 2000; // Cycle de 2 secondes
     if (time < 500)
     {
-        etat_recherche = 0;
+        etat_recherche = RECULER;
     }
     else
     {
-        etat_recherche = 1;
+        if (angle > 0) etat_recherche = TOURNER_DROITE;
+        else etat_recherche = TOURNER_GAUCHE;
     }
 
     switch (etat_recherche) {
-        case 0:
+        case RECULER:
             // Reculer un peu pour revenir près de la ligne
             motor_set_direction(&moteur0, 0);
             motor_set_direction(&moteur1, 1);
+
             motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(V_ROTATION*5));
             motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION*5));
             break;
-
-        case 1:
-            // Arrêter les moteurs après le recul
-            motor_set_pwm_brut(&moteur0, 0);
-            motor_set_pwm_brut(&moteur1, 0);
+        
+        case TOURNER_DROITE:
             motor_set_direction(&moteur0, 1);
             motor_set_direction(&moteur1, 0);
 
-            // Tourner légèrement à droite
+            motor_set_pwm_brut(&moteur0, 0);
+            motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
+
+        case TOURNER_GAUCHE:
+            motor_set_direction(&moteur0, 0);
+            motor_set_direction(&moteur1, 1);
+
             motor_set_pwm_brut(&moteur0, 0);
             motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
             break;
