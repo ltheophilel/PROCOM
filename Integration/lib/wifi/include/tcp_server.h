@@ -20,7 +20,7 @@
 #define TCP_PORT 4242
 #define DEBUG_printf printf
 #define BUF_SIZE 1400 // 1024
-#define LEN_GENERAL_MSG 10
+#define LEN_GENERAL_MSG 20
 #define LEN_FLOAT_MSG 8
 
 extern char *IP4ADDR;

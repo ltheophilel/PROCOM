@@ -33,8 +33,8 @@
         </div>
 
         <div id="Droite">
-            <p>Vitesse Moteur Droit (M0) : <b><span id="v_mot0">0</span></b></p>
-            <p>Vitesse Moteur Gauche (M1) : <b><span id="v_mot1">0</span></b></p>
+            <p>Vitesse Moteur Droit (M0), en RPM : <b><span id="v_mot0">0</span></b></p>
+            <p>Vitesse Moteur Gauche (M1), en RPM : <b><span id="v_mot1">0</span></b></p>
             <canvas id="camCanvas" width="80" height="60"></canvas> 
             </div>
     </div>
@@ -79,7 +79,7 @@
                             updateCanvasFromBase64(base64Data);
                         } else {
                             // On garde les 50 dernières lignes seulement pour la performance
-                            if (line.trim() !== "\x00\x00\x00\x00failed") { // Ignore les lignes vides
+                            if (line.trim() !== "\x00\x00\x00\x00failed" && line.trim() !== "") { // Ignore les lignes vides
                                 const newText = document.createElement("div");
                                 newText.textContent = `> ${line}`;
                                 out.prepend(newText); 

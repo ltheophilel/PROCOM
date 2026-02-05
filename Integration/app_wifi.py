@@ -1,3 +1,4 @@
+import struct
 import sys
 # import pyautogui
 from flask import Flask, request, jsonify, render_template
@@ -25,7 +26,6 @@ WIDTH = 80
 HEIGHT = 60
 IMAGE_SIZE = WIDTH * HEIGHT  # 4800 octets
 BUF_SIZE = 1400 # 1024
-HEADER_SIZE = 3
 
 
 sock = None
@@ -58,29 +58,42 @@ class DATA_TYPE(Enum):
     ALL_IMG = 6
     ALL_IN_ONE = 7
 
+class LEN_DATA(Enum):
+    LEN_HEADER = 3
+    LEN_GENERAL_MSG = 20
+    LEN_MOT = 2
+    LEN_FLOAT = 8
+
+
 
 def receive_all_in_one(packet_data):
     global data, rx_queue, p, m
     offset = 0
+    # print(packet_data)
     # General
-    general_msg_for_debug = f"{packet_data[0:10].decode('utf-8', errors='ignore').strip()}"
+    # print(packet_data[0:LEN_DATA.LEN_GENERAL_MSG.value]
+    #                            .split(b'\x00', 1)[0])
+    general_msg_for_debug = f"{packet_data[0:LEN_DATA.LEN_GENERAL_MSG.value]
+                               .split(b'\x00', 1)[0]
+                               .decode('utf-8', errors='ignore')
+                               .strip()}"
     rx_queue.put(general_msg_for_debug) 
-    offset += 10
-    print("Received : " + general_msg_for_debug)
+    offset += LEN_DATA.LEN_GENERAL_MSG.value
+    # print("Received : " + general_msg_for_debug)
     # Mot 0
-    mot0_data = (packet_data[offset + 1] << 8) | packet_data[offset]
-    offset += 2
+    mot0_data = struct.unpack('<h', bytes(packet_data[offset:offset+2]))[0]#(packet_data[offset + 1] << 8) | packet_data[offset]
+    offset += LEN_DATA.LEN_MOT.value
     rx_queue.put(f"M0 : {mot0_data}")
     # Mot 1
-    mot1_data = (packet_data[offset + 1] << 8) | packet_data[offset]
-    offset += 2
+    mot1_data = struct.unpack('<h', bytes(packet_data[offset:offset+2]))[0]#(packet_data[offset + 1] << 8) | packet_data[offset]
+    offset += LEN_DATA.LEN_MOT.value
     rx_queue.put(f"M1 : {mot1_data}")
     # p et m, équation de la droite mx+p
-    p = float(packet_data[offset:offset+7].decode('utf-8', errors='ignore').strip())
-    offset += 8
-    m = float(packet_data[offset:offset+7].decode('utf-8', errors='ignore').strip())
-    offset += 8
-    print(f"p: {p}, m: {m}")
+    p = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    offset += LEN_DATA.LEN_FLOAT.value
+    m = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    offset += LEN_DATA.LEN_FLOAT.value
+    # print(f"p: {p}, m: {m}")
     # Image
     data = bytearray()  # Réinitialiser les données pour une nouvelle image
     # print([format(b, '08b') for b in packet_data[offset:]])
@@ -112,7 +125,7 @@ def recv_exact(sock, n):
 def receive_data(sock):
     global rx_queue, data
     # 1. Lire le header (3 octets) de façon robuste
-    header = recv_exact(sock, 3)
+    header = recv_exact(sock, LEN_DATA.LEN_HEADER.value)
     if not header:
         print("[TCP] Connexion fermée par le serveur.")
         close_everything()
@@ -147,7 +160,7 @@ def receive_data(sock):
 
 
 
-def decode_bw_image(raw_bytes, width=80, height=60):
+def decode_bw_image(raw_bytes, width=WIDTH, height=HEIGHT):
     arr = np.frombuffer(raw_bytes, dtype=np.uint8)
     img = arr.reshape((height, width))  # format H×W
     return img

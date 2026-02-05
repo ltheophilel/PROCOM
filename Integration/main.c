@@ -5,18 +5,25 @@
 #include "pico/multicore.h"
 #include "pico/sync.h"
 
-#define V 0.25 // vitesse moyenne (m/s)
+// 2* car erreur dans pwm_lookup_table.h
+#define Vmax 2*MAX_RPM*R*(2*PI)/60.0f // conversion rpm -> m/s
 #define F 12.5 // Hz
-#define T 0.25 // s
 
 
 #define OPTIMIZED_SEND true
 
+short pourcentage_Vmax = 25; // en pourcentage de Vmax (environ vitesse en cm/s)
+bool pause = true;
+float T = 0.25f; // temps pour faire un virage (s)
+float P = 1.0f; // gain proportionnel pour la correction d'angle (T = P * (pourcentage_Vmax * Vmax / 100.0f) / 1000.0f; // en secondes)
+bool mode_P = false; // true : mode proportionnel, false : mode fixe
+char general_msg[LEN_GENERAL_MSG];
+
 static char  str_v_mot[LEN_GENERAL_MSG];
 static uint64_t t_us_core_0_beginning_loop;
 static uint64_t t_us_core_1_beginning_loop;
-int v_mot_droit;
-int v_mot_gauche;
+signed int v_mot_droit;
+signed int v_mot_gauche;
 double angle;
 double p;
 double m;
@@ -63,22 +70,50 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     if (strcmp(command, "LED ON") == 0)
     {
         pico_set_led(true);
+        snprintf(general_msg, LEN_GENERAL_MSG, "LED ON");
     }
     else if (strcmp(command, "LED OFF") == 0)
     {
         pico_set_led(false);
+        snprintf(general_msg, LEN_GENERAL_MSG, "LED OFF");
     }
-    // else if (estNombreEntier(command))
-    // {
-    //     char result[100]; // Buffer statique
-    //     // snprintf(result, sizeof(result), "%s%s", prefix, command);
-    //     tcp_server_send(state, command, PACKET_TYPE_MOT_0);
-    // }
-    // else
-    // {
-    //     // Réponse simple : renvoyer exactement ce qu'on a reçu
-    //     tcp_server_send(state, command, PACKET_TYPE_GENERAL);
-    // }
+    else if (strcmp(command, "STOP") == 0)
+    {
+        pause = true;
+        snprintf(general_msg, LEN_GENERAL_MSG, "Robot PAUSED");
+    }
+    else if (strcmp(command, "GO") == 0)
+    {
+        pause = false;
+        snprintf(general_msg, LEN_GENERAL_MSG, "Robot RUNNING");
+    }
+    else if (command[0] == 'V' && estNombreEntier(command + 1))
+    {
+        int v_percentage = atoi(command + 1);
+        if (v_percentage >= 0 && v_percentage <= 100) {
+            pourcentage_Vmax = (short)v_percentage;
+            snprintf(general_msg, LEN_GENERAL_MSG, "Vmax set to %d%%", pourcentage_Vmax);
+        } else {
+            snprintf(general_msg, LEN_GENERAL_MSG, "Error: V%% out of range");
+        }
+    }
+    else if (command[0] == 'T' && estNombreEntier(command + 1))
+    {
+        T = atoi(command + 1) / 1000.0f; // en secondes
+        mode_P = false;
+        snprintf(general_msg, LEN_GENERAL_MSG, "T set to %.3f s", T);
+    }
+    else if (command[0] == 'P' && estNombreEntier(command + 1))
+    {
+        P = atoi(command + 1) / 1000.0f; 
+        mode_P = true;
+        snprintf(general_msg, LEN_GENERAL_MSG, "P set to %.3f", P);
+    }
+    else
+    {
+        // Réponse simple : renvoyer ce qu'on a reçu
+        snprintf(general_msg, LEN_GENERAL_MSG, "Unknown : %s", command);
+    }
 }
 
 static int cpt_envoi = 0;
@@ -89,11 +124,9 @@ void core1_entry() {
     if (connect_success != ERR_OK)
     {
         printf("Échec de la connexion Wi-Fi.\n");
-        pico_blink_led(10, 50); // Clignote rapidement pour indiquer l'erreur
-        pico_set_led(false); 
-        // return 1;
+        pause = false;
     } else pico_set_led(true);
-
+    printf(connect_success == ERR_OK ? "Connecté au Wi-Fi.\n" : "Continuing without Wi-Fi...\n");
     TCP_SERVER_T* state;
     uint8_t rx_buffer[BUF_SIZE];
     if (connect_success == ERR_OK) state = tcp_server_start();
@@ -111,8 +144,7 @@ void core1_entry() {
 
             if (received > 0) {
                 // Si message reçu
-                // Ajouter un '\0' pour créer une chaîne C
-                rx_buffer[received] = '\0';
+                rx_buffer[received] = '\0'; // Ajouter un '\0' pour créer une chaîne de caractères
                 printf("Reçu du client : %s\n", rx_buffer);
                 interpretCommand(state, (const char *)rx_buffer);
             }
@@ -132,10 +164,12 @@ void core1_entry() {
                 printf("Preparing to send all-in-one packet...\n");
                 sleep_ms(20);
                 // snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
-                snprintf(str_v_mot, sizeof(str_v_mot), "%u", cpt_envoi);
+                // if (general_msg[0] == '\0') {
+                //     snprintf(general_msg, LEN_GENERAL_MSG, "%u", cpt_envoi);
+                // }
                 // seuillage_pour_transmission(*get_outbuf_from_core(1),
                 //                             coded_image,
-                //                             MAX_WIDTH, MAX_HEIGHT, &len_coded_image);
+                //                             MAX_WIDTH, MAX_HEIGHT, &len_coded_image); // RLE
                 byte_to_bit_for_transmission(*get_outbuf_from_core(1),
                                             coded_image,
                                             MAX_WIDTH, MAX_HEIGHT);
@@ -143,16 +177,17 @@ void core1_entry() {
                 // printf("Coded image length: %d bytes\n", len_coded_image);
                 printf("Sending all-in-one packet...\n");
                 err = tcp_server_send_all_in_one(state,
-                                            str_v_mot,
+                                            general_msg,
                                             v_mot_droit,
                                             v_mot_gauche,
                                             p,
                                             m,
                                             coded_image,
                                             600); //len_coded_image);
+                snprintf(general_msg, LEN_GENERAL_MSG, ""); // Reset general_msg
+                general_msg[0] = '\0'; // Reset general_msg
             }
             
-            // err_t err = tcp_send_large_img(state, bw_outbuf, MAX_WIDTH*MAX_HEIGHT);
             printf("TCP send time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
             if (err != ERR_OK) {
                 printf("Erreur d'envoi de l'image : %d\n", err);
@@ -231,15 +266,25 @@ void core0_entry()
         free(apm);
         angle = PI*angle/180;
         
-        int* vitesses = get_vitesse_mot(V, angle, T); // en rpm
+        if (mode_P) {
+            T = P * (pourcentage_Vmax * Vmax / 100.0f) / 1000.0f; // en secondes
+        }
+        int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
         v_mot_droit = vitesses[0];
         v_mot_gauche = vitesses[1];
         printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
                angle, v_mot_droit, v_mot_gauche);
         
-        motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
-        motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)/2.0); // /2 car erreur dans rpm_lookup_table.h
-        motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)/2.0); // *signe pour avoir la valeur absolue
+        if (!pause) {
+            motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
+            motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)/2.0); // /2 car erreur dans rpm_lookup_table.h
+            motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)/2.0); // *signe pour avoir la valeur absolue
+        }
+        else {
+            motor_set_rpm(&moteur0, 0.0);
+            motor_set_rpm(&moteur1, 0.0);
+        }
+
         
         printf("Core 0: Processing time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
 

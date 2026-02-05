@@ -161,7 +161,7 @@ void initDisplay(void){
     sendCommand(SSD1306_SET_SCROLL_OFF); 
     sendCommand(SSD1306_DISPLAY_ON);
 
-    printf("SSD1306 display ready!");
+    printf("SSD1306 display ready!\n");
 
     /*for fast clear sendDataBlock can be used. Try it!*/
     for(int i=0;i<128*8;i++){ //Clear any garbage pixels
