@@ -68,7 +68,6 @@ int init_camera()
     gpio_init(CAMERA_PCLK_PIN);
     gpio_set_dir(CAMERA_PCLK_PIN, GPIO_IN);
 
-    // TODO : essayer bus aquisition parallele
     // init DATA pins
     int datapins[8] = {CAMERA_D0, CAMERA_D1, CAMERA_D2, CAMERA_D3,
         CAMERA_D4, CAMERA_D5, CAMERA_D6, CAMERA_D7};
@@ -103,7 +102,7 @@ int choix_format(int division,
 int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **bw_outbuf,
                             uint16_t width, uint16_t height)
 {
-    *frame_buffer = malloc(2 * width * height);
+    *frame_buffer = malloc(width * height);
     if (!frame_buffer) return 1;
 
     *outbuf = malloc(width * height);   // 1 octet par pixel (P5)
@@ -120,12 +119,3 @@ int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **
     }
     return 0;
 }
-
-
-
-
-
-
-
-
-

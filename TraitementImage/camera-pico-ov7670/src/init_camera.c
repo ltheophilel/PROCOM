@@ -11,6 +11,7 @@
 #include "hardware/dma.h"
 #include "ov7670_capture.pio.h"
 
+/* Parametres PIO */
 PIO camera_pio = pio0;
 uint camera_sm = 0;
 int camera_dma_chan;
@@ -75,7 +76,6 @@ int init_camera()
     gpio_init(CAMERA_PCLK_PIN);
     gpio_set_dir(CAMERA_PCLK_PIN, GPIO_IN);
 
-    // TODO : essayer bus aquisition parallele
     // init DATA pins
     int datapins[8] = {CAMERA_D0, CAMERA_D1, CAMERA_D2, CAMERA_D3,
         CAMERA_D4, CAMERA_D5, CAMERA_D6, CAMERA_D7};
@@ -110,7 +110,7 @@ int choix_format(int division,
 int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **bw_outbuf,
                             uint16_t width, uint16_t height)
 {
-    *frame_buffer = malloc(2 * width * height);
+    *frame_buffer = malloc(width * height);
     if (!frame_buffer) return 1;
 
     *outbuf = malloc(width * height);   // 1 octet par pixel (P5)
@@ -135,16 +135,17 @@ void camera_pio_init(void)
     pio_sm_config c =
         ov7670_capture_program_get_default_config(offset);
 
-    sm_config_set_in_pins(&c, CAMERA_D0);
-    // sm_config_set_wait_pin(&c, CAMERA_PCLK_PIN);
+    // sm_config_set_in_pins(&c, CAMERA_D0);
+    sm_config_set_in_pins(&c, CAMERA_PCLK_PIN);
     sm_config_set_jmp_pin(&c, CAMERA_HREF_PIN);
 
     sm_config_set_in_shift(&c, false, true, 8);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
 
     for (int i = 0; i < 8; i++)
+    {
         pio_gpio_init(camera_pio, CAMERA_D0 + i);
-
+    }
     pio_gpio_init(camera_pio, CAMERA_PCLK_PIN);
     pio_gpio_init(camera_pio, CAMERA_HREF_PIN);
     pio_gpio_init(camera_pio, CAMERA_VSYNC_PIN);

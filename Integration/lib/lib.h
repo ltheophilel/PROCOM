@@ -12,6 +12,7 @@
 
 #include "Moteur/include/moteur.h"
 #include "Moteur/include/cinematic.h"
+#include "Moteur/include/pwm_lookup_table.h"
 
 #include "camera/include/init_camera.h"
 #include "camera/include/camera.h"

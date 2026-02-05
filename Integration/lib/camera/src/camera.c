@@ -145,7 +145,7 @@ int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_
                 while (!gpio_get(camera->platform->pclk_pin)) {}
 
                 // ---- READ LOW BYTE ----
-                uint8_t low =
+                /* uint8_t low =
                     (gpio_get(camera->platform->data_pins[7]) << 7) |
                     (gpio_get(camera->platform->data_pins[6]) << 6) |
                     (gpio_get(camera->platform->data_pins[5]) << 5) |
@@ -153,11 +153,11 @@ int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_
                     (gpio_get(camera->platform->data_pins[3]) << 3) |
                     (gpio_get(camera->platform->data_pins[2]) << 2) |
                     (gpio_get(camera->platform->data_pins[1]) << 1) |
-                    (gpio_get(camera->platform->data_pins[0]));
+                    (gpio_get(camera->platform->data_pins[0])); */
 
-                int idx = (row * width + col) * 2;
+                int idx = (row * width + col); // *2 si on utilise low
                 buf[idx]     = high;
-                buf[idx + 1] = low;
+                // buf[idx + 1] = low;
 
                 col++;
             }

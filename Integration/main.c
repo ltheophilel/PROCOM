@@ -27,6 +27,9 @@ signed int v_mot_gauche;
 double angle;
 double p;
 double m;
+uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
+bool LIGNE_DETECTEE = true; // Indique si la ligne est détectée ou non
+
 
 static uint8_t* outbuf1;
 static uint8_t* outbuf2;
@@ -252,37 +255,61 @@ void core0_entry()
         // printf("Capture time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
 
         // Extraire Y seulement
-        for (int px = 0; px < width * height; px++)
-            (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
+        // for (int px = 0; px < width * height; px++)
+        //     (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
+        *get_outbuf_from_core(0) = frame_buffer;
 
         // Traitement
         int seuillage_out = seuillage(*pointer_to_outbuf, bw_outbuf,
                                       width, height);
         core_ready_to_swap(0, true);
-        double* apm = trouver_angle(bw_outbuf, width, height);
-        angle = apm[0];
-        p = apm[1];
-        m = apm[2];
-        free(apm);
-        angle = PI*angle/180;
-        
-        if (mode_P) {
-            T = P * (pourcentage_Vmax * Vmax / 100.0f) / 1000.0f; // en secondes
+
+        if (ligne_detectee(bw_outbuf, width, height) == 0)
+        {
+            // Ligne non détectée
+            if (!LIGNE_DETECTEE)
+            {
+                // Déjà en mode recherche de ligne
+                uint32_t maintenant = time_us_64();
+                uint32_t time = maintenant / 1000 - debut / 1000;
+                // chercher_ligne(time);
+            }
+            else
+            {
+                // Passage en mode recherche de ligne
+                debut = time_us_64();
+                // chercher_ligne(0);
+            }
+            LIGNE_DETECTEE = false;
         }
-        int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
-        v_mot_droit = vitesses[0];
-        v_mot_gauche = vitesses[1];
-        printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
-               angle, v_mot_droit, v_mot_gauche);
-        
-        if (!pause) {
-            motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
-            motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)/2.0); // /2 car erreur dans rpm_lookup_table.h
-            motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)/2.0); // *signe pour avoir la valeur absolue
-        }
-        else {
-            motor_set_rpm(&moteur0, 0.0);
-            motor_set_rpm(&moteur1, 0.0);
+        else
+        {            
+            LIGNE_DETECTEE = true;
+            double* apm = trouver_angle(bw_outbuf, width, height);
+            angle = apm[0];
+            p = apm[1];
+            m = apm[2];
+            free(apm);
+            angle = PI*angle/180;
+            
+            if (mode_P) {
+                T = P * (pourcentage_Vmax * Vmax / 100.0f) / 1000.0f; // en secondes
+            }
+            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
+            v_mot_droit = vitesses[0];
+            v_mot_gauche = vitesses[1];
+            printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
+                angle, v_mot_droit, v_mot_gauche);
+            
+            if (!pause) {
+                motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
+                motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)/2.0); // /2 car erreur dans rpm_lookup_table.h
+                motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)/2.0); // *signe pour avoir la valeur absolue
+            }
+            else {
+                motor_set_rpm(&moteur0, 0.0);
+                motor_set_rpm(&moteur1, 0.0);
+            }
         }
 
         

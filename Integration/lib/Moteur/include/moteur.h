@@ -1,3 +1,6 @@
+#ifndef MOTEUR_H
+#define MOTEUR_H
+
 #include <stdio.h>
 #include <stdbool.h>
 #include "pico/stdlib.h"
@@ -50,3 +53,5 @@ void motor_set_direction(moteur_config *motor, bool direction);
 void motor_define_direction_from_pwm(int v_mot_droit, int v_mot_gauche);
 float motor_get_speed(moteur_config *motor);
 uint32_t pwm_lookup_for_rpm(float target_rpm);
+
+#endif
