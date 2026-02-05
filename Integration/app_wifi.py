@@ -19,7 +19,7 @@ import pygetwindow as gw
 
 all_ip = ["192.168.31.233", "172.20.10.2", "192.168.1.114"]
 
-PICO_IP = all_ip[2]
+PICO_IP = all_ip[1]
 PICO_PORT = 4242
 
 WIDTH = 80
