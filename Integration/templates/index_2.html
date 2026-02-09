@@ -1,0 +1,260 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Interface Microcontrôleur</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+        }
+        #global {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        #Gauche {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #Droite {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #interactions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #commande {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #prompt {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+        }
+        #cmd {
+            padding: 8px;
+            width: 80%;
+        }
+        #boutons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            flex: 1;
+        }
+        #output {
+            background: #ccc;
+            width: 60%;
+            color: #000;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            border-radius: 5px;
+        }
+        #moteurs {
+            width: 50%;
+        }
+        canvas {
+            background: #000;
+            border: 1px solid #333;
+            
+            /* max-width: 8000px;
+            max-height: 8000px; */
+            /* width: auto; */
+        }
+    </style>
+</head>
+<body>
+    <!-- <h1>PROCOM Base Roulante</h1> -->
+
+    <div id="global">
+        <div id="Gauche">
+            <div id="commande">
+                <div id="interactions">
+                    <div id="prompt">
+                        <input id="cmd" placeholder="Entrée pour envoyer">
+                        <!-- <div id="boutons"> -->
+                        <button onclick="send()">Envoyer</button>
+                    </div>
+                    <div style="display: flex; flex-direction: row; gap: 10px;">
+                        <!-- <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <p>Vitesse Moteur Droit (M0), en RPM : <b><span id="v_mot0">0</span></b></p>
+                            <p>Vitesse Moteur Gauche (M1), en RPM : <b><span id="v_mot1">0</span></b></p> -->
+                        <div id="moteurs"> <b>
+                            <p>M0 : <span id="v_mot0">0</span></p>
+                            <p>M1 : <span id="v_mot1">0</span></p>
+                            <p id="V">V35</p>
+                            <p id="P_T">P3000</p>
+                            <p id="LED">LED ON</p></b>
+                        </div>
+                        <button id="GO_STOP" onclick="GO_STOP()">GO</button>
+                        
+                    </div>
+                </div>
+                    <!-- <button onclick="clearCmd()">Effacer</button> -->
+                <!-- </div> -->
+                 <!-- <h3>Logs console :</h3> -->
+            <pre id="output"></pre>
+            </div>
+            
+            <canvas id="camCanvas" width="80" height="60"></canvas>
+        </div>
+
+        <div id="Droite">
+            <canvas id="camCanvasR" width="140" height="190"></canvas>
+        </div>
+    </div>
+
+
+
+    <script>
+        // --- Initialisation des variables ---
+        const canvas = document.getElementById('camCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasR = document.getElementById('camCanvasR');
+        const ctxR = canvasR.getContext('2d');
+        const out = document.getElementById("output");
+        const cmdInput = document.getElementById('cmd');
+        go = false;
+
+        // Gestion de la touche Entrée sur l'input
+        cmdInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") send();
+        });
+
+        // --- Fonctions ---
+        async function send_command(command) {
+            if(!command) return;
+            try {
+                await fetch('/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command})
+                });
+                cmdInput.value = '';
+            } catch (e) { console.error("Erreur envoi:", e); }
+        }
+
+        async function send() {
+            const command = cmdInput.value;
+            if (/^V\d+$/.test(command)) update_values("V", command);
+            else if (/^P\d+$/.test(command)) update_values("P_T", command);
+            else if (/^T\d+$/.test(command)) update_values("P_T", command);
+            else if (/^LED\s+(ON|OFF)$/.test(command)) update_values("LED", command); 
+            send_command(command)
+        }
+
+        async function GO_STOP() {
+            try {
+                if (!go) {
+                    send_command("GO");
+                    go = true;
+                    document.getElementById("GO_STOP").textContent = "STOP";
+                    document.getElementById("GO_STOP").style.background = "#f44336";
+                } else {
+                    send_command("STOP");
+                    go = false;
+                    document.getElementById("GO_STOP").textContent = "GO";
+                    document.getElementById("GO_STOP").style.background = "#4CAF50";
+                }
+            } catch (e) { console.error("Erreur GO_STOP:", e); }
+        }
+
+        async function update_values(which, value) {
+            try {
+                document.getElementById(which).textContent = value;
+            } catch (e) { console.error("Erreur update_values:", e); }
+            
+        }
+
+        async function readLoop() {
+            try {
+                const res = await fetch("/read");
+                if (!res.ok) throw new Error("Server error");
+                const json = await res.json();
+
+                if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {
+                    json.data.forEach(line => {
+                        if (line.startsWith("IMG_DATA:")) {
+                            const base64Data = line.split("IMG_DATA:")[1];
+                            updateCanvasFromBase64(base64Data, false);
+                        } else if (line.startsWith("IMG_DATA_R:")) {
+                            const base64Data = line.split("IMG_DATA_R:")[1];
+                            updateCanvasFromBase64(base64Data, true);
+                        } else {
+                            // On garde les 50 dernières lignes seulement pour la performance
+                            if (line.trim() !== "\x00\x00\x00\x00failed" && line.trim() !== "") { // Ignore les lignes vides
+                                const newText = document.createElement("div");
+                                newText.textContent = `> ${line}`;
+                                out.prepend(newText); 
+                                if(out.children.length > 50) out.lastChild.remove();
+                            }
+                        }
+                    });
+                }
+                // Dans la fonction readLoop()
+                // Mise à jour des moteurs (si présents)
+                if (json.v_mot1 !== null && json.v_mot1 !== undefined) {
+                    document.getElementById("v_mot1").textContent = json.v_mot1;
+                }
+                if (json.v_mot0 !== null && json.v_mot0 !== undefined) {
+                    document.getElementById("v_mot0").textContent = json.v_mot0;
+                }
+
+            } catch (e) { 
+                console.error("Erreur lecture:", e); 
+            } finally {
+                // On relance la boucle même en cas d'erreur, après un petit délai
+                setTimeout(readLoop, 50);
+            }
+        }
+
+        function updateCanvasFromBase64(base64, R = false) {
+            const img = new Image();
+            img.onload = function() {
+                // Optionnel : lissage d'image (false pour garder l'aspect pixelisé du 80x60)
+                const canvas_ = R ? canvasR : canvas;
+                const ctx_ = R ? ctxR : ctx;
+                ctx_.imageSmoothingEnabled = false;
+                ctx_.drawImage(img, 0, 0, canvas_.width, canvas_.height);
+            };
+            img.src = "data:image/png;base64," + base64;
+        }
+
+        // Lancement de la boucle
+        readLoop();
+    </script>
+</body>
+</html>

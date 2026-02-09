@@ -176,7 +176,6 @@ def receive_data(sock):
 def decode_bw_image(raw_bytes, width=WIDTH, height=HEIGHT):
     arr = np.frombuffer(raw_bytes, dtype=np.uint8)
     img = arr.reshape((height, width))  # format H×W
-    # img = correct_perspective(img)
     return img
 
 
@@ -233,10 +232,17 @@ def tcp_thread():
                     raw = raw + bytes([128] * (IMAGE_SIZE - len(raw)))
                 # print(f"[TCP] Image reçue ({len(raw)} octets) en {time.time() - temps_debut:.2f} secondes.")
                 img = decode_bw_image(raw)
+                img_reconstructed = correct_perspective(img)
+
                 img = draw_line_on_image(img, m, p)
                 _, buffer = cv2.imencode('.png', img)
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA:{img_base64}")
+                
+                img_reconstructed = draw_line_on_image(img_reconstructed, m, p)
+                _, buffer = cv2.imencode('.png', img_reconstructed)
+                img_base64 = base64.b64encode(buffer).decode('utf-8')
+                rx_queue.put(f"IMG_DATA_R:{img_base64}")
                 # cv2.imwrite("static/images/cam.png", img)
             elif packet_type in (DATA_TYPE.MOT_0.value, DATA_TYPE.MOT_1.value, DATA_TYPE.GENERAL.value):
                 pass
@@ -257,7 +263,7 @@ def close_everything():
 # ====================== routes Flask ======================
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index_2.html")
 
 
 @app.route("/send", methods=["POST"])
