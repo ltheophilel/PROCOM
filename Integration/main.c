@@ -297,8 +297,8 @@ void core0_entry()
             m = apm[2];
             free(apm);
             double* apm_aplati = aplatir(p, m);
-            p = apm_aplati[0];
-            m = apm_aplati[1];
+            p_aplati = apm_aplati[0];
+            m_aplati = apm_aplati[1];
             free(apm_aplati);
             angle = PI*angle/180;
             
