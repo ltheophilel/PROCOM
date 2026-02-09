@@ -1,5 +1,3 @@
-#ifndef PWM_LOOKUP_TABLE_H
-#define PWM_LOOKUP_TABLE_H
 
 #define L 0.29 // Distance entre les deux roues, en m
 #define R 0.033 // Rayon d'une roue, en m
@@ -12,5 +10,4 @@ int* get_vitesse_mot(float Vmoy, float angle, float T) {
     return vitesse;
 }
 
-#endif 
 
