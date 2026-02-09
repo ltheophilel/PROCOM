@@ -256,3 +256,27 @@ int ligne_detectee(uint8_t *bw_image, int width, int height)
         return 1; // ligne détectée
     }
 }
+
+double* aplatir(double p, double m)
+{
+    double *apm = malloc(2 * sizeof(double));
+    // M = [1.75   0.875 ;     // Matrice de déformation pour aplatir l'image
+    //      0.     5.5417;
+    
+    // On prend 2 points sur cette droite
+    double x1 = 0;
+    double y1 = m*0 + p;
+    double x2 = PROFONDEUR;
+    double y2 = m*x2 + p;
+    // On applique la matrice de déformation
+    double x1_aplati = 1.75*x1 + 0.875*y1;
+    double y1_aplati = 5.5417*y1;
+    double x2_aplati = 1.75*x2 + 0.875*y2;
+    double y2_aplati = 5.5417*y2;
+    // On recalcule la pente et l'ordonnée à l'origine de la droite aplatie
+    double m_aplati = (y2_aplati - y1_aplati) / (x2_aplati - x1_aplati);
+    double p_aplati = y1_aplati - m_aplati*x1_aplati;
+    apm[0] = p_aplati;
+    apm[1] = m_aplati;
+    return apm;
+}
