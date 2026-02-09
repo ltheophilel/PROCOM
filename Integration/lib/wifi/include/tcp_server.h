@@ -67,6 +67,8 @@ err_t tcp_server_send_all_in_one(TCP_SERVER_T *state,
                                 const double p,
                                 const double m,
                                 const double angle,
+                                const double p_aplati,
+                                const double m_aplati,
                                 const uint8_t *coded_image, 
                                 size_t len_img);
 #endif /* TCP_SERVER_H */

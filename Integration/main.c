@@ -28,6 +28,8 @@ signed int v_mot_gauche;
 double angle;
 double p;
 double m;
+double p_aplati;
+double m_aplati;
 uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
 bool LIGNE_DETECTEE = true; // Indique si la ligne est détectée ou non
 
@@ -192,6 +194,8 @@ void core1_entry() {
                                             p,
                                             m,
                                             angle,
+                                            p_aplati,
+                                            m_aplati,
                                             coded_image,
                                             600); //len_coded_image);
                 snprintf(general_msg, LEN_GENERAL_MSG, ""); // Reset general_msg
@@ -298,8 +302,8 @@ void core0_entry()
             m = apm[2];
             free(apm);
             double* apm_aplati = aplatir(p, m);
-            p = apm_aplati[0];
-            m = apm_aplati[1];
+            p_aplati = apm_aplati[0];
+            m_aplati = apm_aplati[1];
             free(apm_aplati);
             angle = PI*angle/180;
             

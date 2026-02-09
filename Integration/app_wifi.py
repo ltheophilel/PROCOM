@@ -42,6 +42,8 @@ general_msg_for_debug = ""
 p = 0.0
 m = 0.0
 angle = 0.0
+p_aplati = 0.0
+m_aplati = 0.0
 
 # ===================== TCP thread ======================
 # Désactiver les logs de Werkzeug
@@ -68,11 +70,10 @@ class LEN_DATA(Enum):
 def correct_perspective(image, M):
     # Appliquer la transformation
     corrected = cv2.warpPerspective(image, M, (140, 190))
-
     return corrected
 
 def receive_all_in_one(packet_data):
-    global data, rx_queue, p, m, angle
+    global data, rx_queue, p, m, angle, p_aplati, m_aplati
     offset = 0
     # print(packet_data)
     # General
@@ -100,6 +101,11 @@ def receive_all_in_one(packet_data):
     offset += LEN_DATA.LEN_FLOAT.value
     # angle
     angle = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    offset += LEN_DATA.LEN_FLOAT.value
+    # p et m aplatis, équation de la droite mx+p
+    p_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    offset += LEN_DATA.LEN_FLOAT.value
+    m_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
     offset += LEN_DATA.LEN_FLOAT.value
     # Image
     data = bytearray()  # Réinitialiser les données pour une nouvelle image
@@ -184,10 +190,13 @@ def draw_line_on_image(img, slope, x_intercept, color=(0, 0, 255), thickness=1):
     :return: Image BGR avec la ligne tracée.
     """
     # Convertir l'image en BGR (3 canaux)
-    img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-
+    if len(img.shape) == 2:  # Si l'image est en niveaux de gris
+        img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    else:
+        img_bgr = img.copy()
     # Coordonnées de l'image (origine en bas à gauche)
-    height, width = img.shape
+    height = img.shape[0]
+    width = img.shape[1]
     y_center = height-1
     x_center = width // 2
 
@@ -208,7 +217,6 @@ def draw_line_on_image(img, slope, x_intercept, color=(0, 0, 255), thickness=1):
         pt1 = (int(x_valid[i]), int(y_valid[i]))
         pt2 = (int(x_valid[i + 1]), int(y_valid[i + 1]))
         cv2.line(img_bgr, pt1, pt2, color, thickness)
-
     return img_bgr
 
 
@@ -239,12 +247,13 @@ def tcp_thread():
                 img_reconstructed = correct_perspective(img, M)
 
                 img = draw_line_on_image(img, m, p)
-                # img = draw_line_on_image(img, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
+                img = draw_line_on_image(img, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
                 _, buffer = cv2.imencode('.png', img)
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA:{img_base64}")
                 
-                img_reconstructed = draw_line_on_image(img_reconstructed, m, p)
+                img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, p_aplati)
+                img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
                 _, buffer = cv2.imencode('.png', img_reconstructed)
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA_R:{img_base64}")
