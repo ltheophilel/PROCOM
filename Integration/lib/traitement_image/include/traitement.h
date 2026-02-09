@@ -12,6 +12,10 @@
 #define MOVING_AVG_SIZE 1
 #define SEUIL_DETECTION_LIGNE 5
 
+#define M = [1.75   0.875   0.;     // Matrice de déformation pour aplatir l'image
+             0.     5.5417  0.;
+             0.     0.0125  1.]
+
 #define GAIN_REGLAGE 1
 
 int seuillage(uint8_t *image, uint8_t *bw_image,
@@ -32,5 +36,7 @@ double* trouver_angle(uint8_t *bw_image,
                      int width, int height);
 
 int ligne_detectee(uint8_t *bw_image, int width, int height);
+
+double* aplatir(double p, double m);
 
 #endif
