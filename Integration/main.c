@@ -6,7 +6,7 @@
 #include "pico/sync.h"
 
 // 2* car erreur dans pwm_lookup_table.h
-#define Vmax 2*MAX_RPM*R*(2*PI)/60.0f // conversion rpm -> m/s
+#define Vmax 2*MAX_RPM*R*(2*PI)/60.0f // conversion rpm -> m/s. Environ 1 m/s
 #define F 12.5 // Hz
 
 
@@ -14,8 +14,8 @@
 
 short pourcentage_Vmax = 35; // en pourcentage de Vmax (environ vitesse en cm/s)
 bool pause = true;
-float T = 0.50f; // temps pour faire un virage (s)
-float P = 3.0f; // gain proportionnel pour la correction d'angle (T = P * (pourcentage_Vmax * Vmax / 100.0f); // en secondes)
+float T = 1.0f; // 0.50f; // temps pour faire un virage (s)
+float P = 3.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes)
 bool mode_P = true; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
@@ -191,6 +191,7 @@ void core1_entry() {
                                             v_mot_gauche,
                                             p,
                                             m,
+                                            angle,
                                             coded_image,
                                             600); //len_coded_image);
                 snprintf(general_msg, LEN_GENERAL_MSG, ""); // Reset general_msg
@@ -303,7 +304,7 @@ void core0_entry()
             angle = PI*angle/180;
             
             if (mode_P) {
-                T = P * (pourcentage_Vmax * Vmax / 100.0f); // en secondes
+                T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes
             }
             int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
             v_mot_droit = vitesses[0];

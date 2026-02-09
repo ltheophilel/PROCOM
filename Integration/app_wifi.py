@@ -41,6 +41,7 @@ app = Flask(__name__)
 general_msg_for_debug = ""
 p = 0.0
 m = 0.0
+angle = 0.0
 
 # ===================== TCP thread ======================
 # Désactiver les logs de Werkzeug
@@ -64,23 +65,14 @@ class LEN_DATA(Enum):
     LEN_MOT = 2
     LEN_FLOAT = 8
 
-def correct_perspective(image):
-    # Calculer la matrice de transformation
-    # Points sources (exemple : coins de l'image distordue)
-    source_points = [(0, 0), (80, 0), (0, 60), (80, 60)]
-
-    # Points de destination (exemple : coins de l'image redressée)
-    destination_points = [(0, 0), (140, 0), (30, 190), (110, 190)]
-
-    M = cv2.getPerspectiveTransform(np.float32(source_points), np.float32(destination_points))
-
+def correct_perspective(image, M):
     # Appliquer la transformation
     corrected = cv2.warpPerspective(image, M, (140, 190))
 
     return corrected
 
 def receive_all_in_one(packet_data):
-    global data, rx_queue, p, m
+    global data, rx_queue, p, m, angle
     offset = 0
     # print(packet_data)
     # General
@@ -106,7 +98,9 @@ def receive_all_in_one(packet_data):
     offset += LEN_DATA.LEN_FLOAT.value
     m = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
     offset += LEN_DATA.LEN_FLOAT.value
-    # print(f"p: {p}, m: {m}")
+    # angle
+    angle = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    offset += LEN_DATA.LEN_FLOAT.value
     # Image
     data = bytearray()  # Réinitialiser les données pour une nouvelle image
     # print([format(b, '08b') for b in packet_data[offset:]])
@@ -221,8 +215,18 @@ def draw_line_on_image(img, slope, x_intercept, color=(0, 0, 255), thickness=1):
 
 
 def tcp_thread():
-    global sock, running, temps_debut, log, p, m
+    global sock, running, temps_debut, log, p, m, angle
     print("[TCP] Thread démarré.")
+
+    # Calculer la matrice de transformation
+    # Points sources (exemple : coins de l'image distordue)
+    source_points = [(0, 0), (80, 0), (0, 60), (80, 60)]
+
+    # Points de destination (exemple : coins de l'image redressée)
+    destination_points = [(0, 0), (140, 0), (30, 190), (110, 190)]
+
+    M = cv2.getPerspectiveTransform(np.float32(source_points), np.float32(destination_points))
+
     while running:
         try:
             temps_debut = time.time()
@@ -232,9 +236,10 @@ def tcp_thread():
                     raw = raw + bytes([128] * (IMAGE_SIZE - len(raw)))
                 # print(f"[TCP] Image reçue ({len(raw)} octets) en {time.time() - temps_debut:.2f} secondes.")
                 img = decode_bw_image(raw)
-                img_reconstructed = correct_perspective(img)
+                img_reconstructed = correct_perspective(img, M)
 
                 img = draw_line_on_image(img, m, p)
+                # img = draw_line_on_image(img, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
                 _, buffer = cv2.imencode('.png', img)
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA:{img_base64}")
