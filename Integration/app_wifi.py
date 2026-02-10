@@ -19,7 +19,7 @@ import pygetwindow as gw
 
 all_ip = ["192.168.31.233", "172.20.10.2", "192.168.1.114"]
 
-PICO_IP = all_ip[1]
+PICO_IP = all_ip[0]
 PICO_PORT = 4242
 
 WIDTH = 80
@@ -133,9 +133,10 @@ def recv_exact(sock, n):
         if ready[0]:
             packet = sock.recv(n - len(buffer))
             if not packet:
+                print("[TCP] Connexion fermée par le serveur pendant la réception.")
                 return None
             buffer.extend(packet)
-        return buffer
+    return buffer
 
 def receive_data(sock):
     global rx_queue, data
@@ -148,9 +149,16 @@ def receive_data(sock):
     packet_type = header[0]
     packet_size = (header[1] << 8) | header[2]
     
+    if packet_size == 0:
+        print(header, packet_type, packet_size)
+        return bytes(data), packet_type
+
     # 2. Lire le contenu exact du paquet
     packet_data = recv_exact(sock, packet_size)
+    # packet_data = sock.recv(packet_size)
+    # print(f"[TCP] Données reçues : {len(packet_data) if packet_data else 0} octets (attendu {packet_size} octets)")
     if packet_data is None:
+        print(header, packet_type, packet_size)
         raise ConnectionError("Erreur lors de la réception des données")
 
     # 3. Traiter le paquet 
@@ -168,9 +176,9 @@ def receive_data(sock):
         rx_queue.put(f"M0 : {packet_data.decode('utf-8', errors='ignore').strip()}")
     elif packet_type == DATA_TYPE.MOT_1.value:
         rx_queue.put(f"M1 : {packet_data.decode('utf-8', errors='ignore').strip()}")
-    else:
+    elif packet_type == DATA_TYPE.GENERAL.value:
         rx_queue.put(f"{packet_data.decode('utf-8', errors='ignore').strip()}")
-
+    # print(f"[TCP] Paquet de type {packet_type} traité, données accumulées : {len(data)} octets.")
     return bytes(data), packet_type
 
 
@@ -243,6 +251,8 @@ def tcp_thread():
             raw, packet_type = receive_data(sock)
             if packet_type == DATA_TYPE.END_IMG.value or packet_type == DATA_TYPE.ALL_IN_ONE.value:
                 if len(raw) != IMAGE_SIZE:
+                    print(f"[TCP] Attention : image reçue de taille {len(raw)} octets (attendu {IMAGE_SIZE} octets).")
+                    # print(f"[TCP] Raw data (bin) : {[format(b, '08b') for b in raw]}")
                     raw = raw + bytes([128] * (IMAGE_SIZE - len(raw)))
                 # print(f"[TCP] Image reçue ({len(raw)} octets) en {time.time() - temps_debut:.2f} secondes.")
                 img = decode_bw_image(raw)
@@ -254,7 +264,7 @@ def tcp_thread():
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA:{img_base64}")
                 
-                # img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, -p_aplati)
+                # img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, p_aplati)
                 # img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle_aplati), 0, color=(255, 0, 0), thickness=1)
                 img_reconstructed = draw_line_on_image(img_reconstructed, m, p)
                 img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
