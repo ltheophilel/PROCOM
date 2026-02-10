@@ -173,6 +173,7 @@ err_t tcp_server_send_all_in_one(TCP_SERVER_T *state,
                                 const double angle,
                                 const double p_aplati,
                                 const double m_aplati,
+                                const double angle_aplati,
                                 const uint8_t *coded_image, 
                                 size_t len_img) {
     if (!state->client_pcb) return ERR_CLSD;
@@ -184,7 +185,7 @@ err_t tcp_server_send_all_in_one(TCP_SERVER_T *state,
     }
     // Construire l'en-tête
     header[0] = PACKET_TYPE_ALL_IN_ONE;
-    chunk = LEN_GENERAL_MSG + 2 + 2 + 5*LEN_FLOAT_MSG + len_img; // général (10) + v_mot_droit (2) + v_mot_gauche (2) + p (7) + m (7) + image codée
+    chunk = LEN_GENERAL_MSG + 2 + 2 + 6*LEN_FLOAT_MSG + len_img; // général (10) + v_mot_droit (2) + v_mot_gauche (2) + p (7) + m (7) + image codée
     header[1] = (chunk >> 8) & 0xFF; // Octet haut de la taille
     header[2] = chunk & 0xFF;         // Octet bas de la taille
     
@@ -201,25 +202,8 @@ err_t tcp_server_send_all_in_one(TCP_SERVER_T *state,
     ptr = add_float_to_send(ptr, angle);
     ptr = add_float_to_send(ptr, p_aplati);
     ptr = add_float_to_send(ptr, m_aplati);
+    ptr = add_float_to_send(ptr, angle_aplati);
     ptr = add_data_to_send(ptr, coded_image, len_img);
-
-    // memcpy(buffer, header, 3);
-    // memcpy(buffer + 3, general_msg, LEN_GENERAL_MSG);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG, &v_mot_droit, 2);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 2, &v_mot_gauche, 2);
-    // snprintf(pm, sizeof(pm), "%.6f", p);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 4, pm, LEN_FLOAT_MSG);
-    // snprintf(pm, sizeof(pm), "%.6f", m);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 4 + LEN_FLOAT_MSG, pm, LEN_FLOAT_MSG);
-    // snprintf(pm, sizeof(pm), "%.6f", angle);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 4 + 2*LEN_FLOAT_MSG, pm, LEN_FLOAT_MSG);
-    // snprintf(pm, sizeof(pm), "%.6f", angle);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 4 + 2*LEN_FLOAT_MSG, pm, LEN_FLOAT_MSG);
-    // snprintf(pm, sizeof(pm), "%.6f", p_aplati);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 4 + 3*LEN_FLOAT_MSG, pm, LEN_FLOAT_MSG);
-    // snprintf(pm, sizeof(pm), "%.6f", m_aplati);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 4 + 4*LEN_FLOAT_MSG, pm, LEN_FLOAT_MSG);
-    // memcpy(buffer + 3 + LEN_GENERAL_MSG + 4 + 5*LEN_FLOAT_MSG, coded_image, len_img);
 
     err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
     if (err == ERR_OK) {

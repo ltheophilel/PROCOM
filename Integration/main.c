@@ -15,7 +15,7 @@
 short pourcentage_Vmax = 35; // en pourcentage de Vmax (environ vitesse en cm/s)
 bool pause = true;
 float T = 1.0f; // 0.50f; // temps pour faire un virage (s)
-float P = 3.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes)
+float P = 4.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes)
 bool mode_P = true; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
@@ -30,6 +30,7 @@ double p;
 double m;
 double p_aplati;
 double m_aplati;
+double angle_aplati;
 uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
 bool LIGNE_DETECTEE = true; // Indique si la ligne est détectée ou non
 
@@ -196,6 +197,7 @@ void core1_entry() {
                                             angle,
                                             p_aplati,
                                             m_aplati,
+                                            angle_aplati,
                                             coded_image,
                                             600); //len_coded_image);
                 snprintf(general_msg, LEN_GENERAL_MSG, ""); // Reset general_msg
@@ -301,9 +303,10 @@ void core0_entry()
             p = apm[1];
             m = apm[2];
             free(apm);
-            double* apm_aplati = aplatir(p, m);
-            p_aplati = apm_aplati[0];
-            m_aplati = apm_aplati[1];
+            double* apm_aplati = aplatir(angle, p, m);
+            angle_aplati = apm_aplati[0];
+            p_aplati = apm_aplati[1];
+            m_aplati = apm_aplati[2];
             free(apm_aplati);
             angle = PI*angle/180;
             

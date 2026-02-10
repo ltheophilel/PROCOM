@@ -73,7 +73,7 @@ def correct_perspective(image, M):
     return corrected
 
 def receive_all_in_one(packet_data):
-    global data, rx_queue, p, m, angle, p_aplati, m_aplati
+    global data, rx_queue, p, m, angle, p_aplati, m_aplati, angle_aplati
     offset = 0
     # print(packet_data)
     # General
@@ -106,6 +106,8 @@ def receive_all_in_one(packet_data):
     p_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
     offset += LEN_DATA.LEN_FLOAT.value
     m_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    offset += LEN_DATA.LEN_FLOAT.value
+    angle_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
     offset += LEN_DATA.LEN_FLOAT.value
     # Image
     data = bytearray()  # Réinitialiser les données pour une nouvelle image
@@ -223,7 +225,7 @@ def draw_line_on_image(img, slope, x_intercept, color=(0, 0, 255), thickness=1):
 
 
 def tcp_thread():
-    global sock, running, temps_debut, log, p, m, angle
+    global sock, running, temps_debut, log, p, m, angle, p_aplati, m_aplati, angle_aplati
     print("[TCP] Thread démarré.")
 
     # Calculer la matrice de transformation
@@ -252,7 +254,9 @@ def tcp_thread():
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA:{img_base64}")
                 
-                img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, p_aplati)
+                # img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, -p_aplati)
+                # img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle_aplati), 0, color=(255, 0, 0), thickness=1)
+                img_reconstructed = draw_line_on_image(img_reconstructed, m, p)
                 img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
                 _, buffer = cv2.imencode('.png', img_reconstructed)
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
