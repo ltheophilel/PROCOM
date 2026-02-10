@@ -33,6 +33,8 @@ double* trouver_angle(uint8_t *bw_image,
 
 int ligne_detectee(uint8_t *bw_image, int width, int height);
 
+void appliquerHomographie(double homographie[3][3], double x, double y, double *x_aplati, double *y_aplati);
+
 double* aplatir(double angle, double p, double m);
 
 #endif

@@ -257,28 +257,58 @@ int ligne_detectee(uint8_t *bw_image, int width, int height)
     }
 }
 
-double* aplatir(double angle, double p, double m)
-{
+// Fonction pour appliquer une homographie à un point 2D
+void appliquerHomographie(double homographie[3][3], double x, double y, double *x_aplati, double *y_aplati) {
+    // Coordonnées homogènes
+    double xh = homographie[0][0] * x + homographie[0][1] * y + homographie[0][2];
+    double yh = homographie[1][0] * x + homographie[1][1] * y + homographie[1][2];
+    double wh = homographie[2][0] * x + homographie[2][1] * y + homographie[2][2];
+
+    // Normalisation
+    *x_aplati = xh / wh;
+    *y_aplati = yh / wh;
+}
+
+double* aplatir(double angle, double p, double m) {
     double *apm = malloc(3 * sizeof(double));
-    // Matrice de déformation :
-    // [ -1.20634921   0.0 ;
-    //   0.0    -0.66666667 ]
-    
-    // On prend 2 points sur cette droite
-    double x1 = 0;
-    double y1 = m*0 + p;
-    double x2 = 40;
-    double y2 = m*40 + p;
-    // On applique la matrice de déformation
-    double x1_aplati = -1.20634921*x1;
-    double y1_aplati = -0.66666667*y1;
-    double x2_aplati = -1.20634921*x2;
-    double y2_aplati = -0.66666667*y2;
-    // On recalcule la pente et l'ordonnée à l'origine de la droite aplatie
+    if (apm == NULL) {
+        return NULL; // Échec de l'allocation
+    }
+
+    // Ta matrice d'homographie
+    double homographie[3][3] = {
+        {-1.20634921, 0.0, 0.0},
+        {0.0, -0.66666667, 0.0},
+        {-0.02301587, -0.0, 1.0}
+    };
+
+    // Points initiaux sur la droite y = m*x + p
+    double x1 = 0.0;
+    double y1 = p;
+    double x2 = PROFONDEUR;
+    double y2 = m * x2 + p;
+
+    // Appliquer l'homographie
+    double x1_aplati, y1_aplati, x2_aplati, y2_aplati;
+    appliquerHomographie(homographie, x1, y1, &x1_aplati, &y1_aplati);
+    appliquerHomographie(homographie, x2, y2, &x2_aplati, &y2_aplati);
+
+    // Vérifier la division par zéro
+    if (fabs(x2_aplati - x1_aplati) < 1e-10) {
+        free(apm);
+        return NULL; // Droite verticale après transformation
+    }
+
+    // Calcul de la pente et de l'ordonnée à l'origine
     double m_aplati = (y2_aplati - y1_aplati) / (x2_aplati - x1_aplati);
-    double p_aplati = y1_aplati - m_aplati*x1_aplati;
-    double profondeur_aplati = PROFONDEUR/60*190; // distance en pixel pour le calcul de l'angle
-    double angle_aplati = atan((m_aplati*profondeur_aplati+p_aplati)/profondeur_aplati) * (180.0 / PI);
+    double p_aplati = y1_aplati - m_aplati * x1_aplati;
+
+    // Calcul de la profondeur en pixels (à adapter selon ton contexte)
+    double profondeur_aplati = PROFONDEUR / 60.0 * 190.0;
+
+    // Calcul de l'angle (en degrés)
+    double angle_aplati = atan((m_aplati * profondeur_aplati + p_aplati) / profondeur_aplati) * (180.0 / PI);
+
     apm[0] = angle_aplati;
     apm[1] = p_aplati;
     apm[2] = m_aplati;
