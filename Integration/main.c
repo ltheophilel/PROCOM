@@ -19,7 +19,7 @@ float P = 4.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P 
 bool mode_P = true; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
-int PROFONDEUR = 20;
+int PROFONDEUR = 30;
 
 static char  str_v_mot[LEN_GENERAL_MSG];
 static uint64_t t_us_core_0_beginning_loop;

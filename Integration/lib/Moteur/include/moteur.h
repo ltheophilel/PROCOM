@@ -36,7 +36,6 @@ extern moteur_config moteur1;
 
 #define SPEED_PERIOD_MS     1000        // calcul de la vitesse toutes les 1 s
 #define ENC_COUNTS_PER_REV  318.0f      // TODO : remplacer par la valeur réelle de l’encodeur
-#define MAX_RPM 140.0f               // Vitesse maximale attendue (pour la table de lookup)
 
 // ----------------- VARIABLES GLOBALES -----------------
 
