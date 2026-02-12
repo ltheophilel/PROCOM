@@ -9,12 +9,12 @@ line_wait:
     wait 1 gpio 9   ; debut de ligne : HREF = 1
 
 pixel_loop:
-    wait 1 pin 0         ; PCLK rising (GPIO 10)
+    wait 1 gpio 10         ; PCLK rising (GPIO 10)
     in pins, 8           ; lire D0..D7 (GPIO 14..21)
-    wait 0 pin 0
+    wait 0 gpio 10
 
-    wait 1 pin 0         ; on laisse passer les couleurs
-    wait 0 pin 0         ; (low byte)
+    wait 1 gpio 10         ; on laisse passer les couleurs
+    wait 0 gpio 10         ; (low byte)
 
     jmp pin pixel_loop  ; tant que HREF = 1
     jmp line_wait

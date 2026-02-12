@@ -26,4 +26,4 @@ double trouver_angle(uint8_t *bw_image,
 
 int donner_direction(double angle);
 
-#endif
+#endif /*__TRAITEMENT_H__*/
