@@ -218,41 +218,13 @@ uint32_t pwm_lookup_for_rpm(float target_rpm) {
     return PWM_WRAP;
 }
 
-void chercher_ligne(uint32_t time, double angle) {
-    time = time % 2000; // Cycle de 2 secondes
-    if (time < 500)
-    {
-        etat_recherche = RECULER;
-    }
-    else
-    {
-        if (angle > 0) etat_recherche = TOURNER_DROITE;
-        else etat_recherche = TOURNER_GAUCHE;
-    }
-
-    switch (etat_recherche) {
-        case RECULER:
-            // Reculer un peu pour revenir près de la ligne
-            motor_set_direction(&moteur0, 0);
-            motor_set_direction(&moteur1, 1);
-
-            motor_set_pwm_brut(&moteur0, pwm_lookup_for_rpm(V_ROTATION*5));
-            motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION*5));
-            break;
-        
-        case TOURNER_DROITE:
-            motor_set_direction(&moteur0, 1);
-            motor_set_direction(&moteur1, 0);
-
-            motor_set_pwm_brut(&moteur0, 0);
-            motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
-
-        case TOURNER_GAUCHE:
-            motor_set_direction(&moteur0, 0);
-            motor_set_direction(&moteur1, 1);
-
-            motor_set_pwm_brut(&moteur0, 0);
-            motor_set_pwm_brut(&moteur1, pwm_lookup_for_rpm(V_ROTATION));
-            break;
-    }
+void chercher_ligne(int v_droit, int v_gauche, double angle) {
+    // En mode recherche de ligne, on fait un virage dans la direction opposée à l'angle détecté pour essayer de retrouver la ligne
+    int v_mot_droit = -v_gauche; // *-1 pour inverser le sens de rotation
+    int v_mot_gauche = -v_droit; // et on inverse aussi les moteurs (droite/gauche) pour faire un virage dans la bonne direction
+    printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
+            angle, v_mot_droit, v_mot_gauche);
+    motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
+    motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)/2.0); // /2 car erreur dans rpm_lookup_table.h
+    motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)/2.0); // *signe pour avoir la valeur absolue
 }
