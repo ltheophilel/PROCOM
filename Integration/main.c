@@ -280,24 +280,11 @@ void core0_entry()
         if (ligne_detectee(bw_outbuf, width, height) == 0)
         {
             // Ligne non détectée
-            if (!LIGNE_DETECTEE)
-            {
-                // Déjà en mode recherche de ligne
-                uint32_t maintenant = time_us_64();
-                uint32_t time = maintenant / 1000 - debut / 1000;
-                if (!pause) chercher_ligne(time, angle);
-            }
-            else
-            {
-                // Passage en mode recherche de ligne
-                debut = time_us_64();
-                if (!pause) chercher_ligne(0, angle);
-            }
-            LIGNE_DETECTEE = false;
+            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
+            chercher_ligne(vitesses[0], vitesses[1], angle);
         }
         else
         {            
-            LIGNE_DETECTEE = true;
             double* apm = trouver_angle(bw_outbuf, width, height);
             angle = apm[0];
             p = apm[1];
