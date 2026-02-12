@@ -19,6 +19,7 @@ float P = 4.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P 
 bool mode_P = true; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
+int PROFONDEUR = 20;
 
 static char  str_v_mot[LEN_GENERAL_MSG];
 static uint64_t t_us_core_0_beginning_loop;
@@ -120,6 +121,11 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     {
         SEUIL = (short)atoi(command + 1); 
         snprintf(general_msg, LEN_GENERAL_MSG, "SEUIL set to %d", SEUIL);
+    }
+    else if (command[0] == 'D' && estNombreEntier(command + 1))
+    {
+        PROFONDEUR = (short)atoi(command + 1); 
+        snprintf(general_msg, LEN_GENERAL_MSG, "PROFONDEUR set to %d", PROFONDEUR);
     }
     else
     {
@@ -261,7 +267,6 @@ void core0_entry()
             cyw43_arch_poll();
         #endif
         
-        uint8_t** pointer_to_outbuf = get_outbuf_from_core(0);
         t_us_core_0_beginning_loop = time_us_64();
         core_ready_to_swap(0, false);
         camera_capture_blocking(&camera, frame_buffer, width, height);
@@ -270,11 +275,12 @@ void core0_entry()
         // Extraire Y seulement
         // for (int px = 0; px < width * height; px++)
         //     (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
-        *get_outbuf_from_core(0) = frame_buffer;
+        if (!OPTIMIZED_SEND) *get_outbuf_from_core(0) = frame_buffer;
         
         // Traitement
-        int seuillage_out = seuillage(*pointer_to_outbuf, bw_outbuf,
+        int seuillage_out = seuillage(frame_buffer, bw_outbuf,
                                       width, height, SEUIL);
+        if (OPTIMIZED_SEND) *get_outbuf_from_core(0) = bw_outbuf;
         core_ready_to_swap(0, true);
 
         if (ligne_detectee(bw_outbuf, width, height) == 0)
@@ -285,12 +291,12 @@ void core0_entry()
         }
         else
         {            
-            double* apm = trouver_angle(bw_outbuf, width, height);
+            double* apm = trouver_angle(bw_outbuf, width, height, PROFONDEUR);
             angle = apm[0];
             p = apm[1];
             m = apm[2];
             free(apm);
-            double* apm_aplati = aplatir(angle, p, m);
+            double* apm_aplati = aplatir(angle, p, m, PROFONDEUR);
             angle_aplati = apm_aplati[0];
             p_aplati = apm_aplati[1];
             m_aplati = apm_aplati[2];

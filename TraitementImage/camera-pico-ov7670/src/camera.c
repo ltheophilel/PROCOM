@@ -205,21 +205,21 @@ void OV7670_write_register(void *platform, uint8_t reg, uint8_t value)
 	pcfg->i2c_write_blocking(pcfg->i2c_handle, OV7670_ADDR, (uint8_t[]){ reg, value }, 2);
 }
 
-void camera_dma_start(uint8_t *framebuffer, size_t frame_size)
+void camera_dma_start(uint8_t *frame_buffer, size_t frame_size)
 {
     dma_channel_config cfg =
         dma_channel_get_default_config(camera_dma_chan);
 
-    channel_config_set_transfer_data_size(&cfg, DMA_SIZE_8); // 8 bits
+    channel_config_set_transfer_data_size(&cfg, DMA_SIZE_8); // envoi d'octets
     channel_config_set_read_increment(&cfg, false); // FIFO
-    channel_config_set_write_increment(&cfg, true);
+    channel_config_set_write_increment(&cfg, true); // Peripherique vers memoire
     channel_config_set_dreq(
         &cfg, pio_get_dreq(camera_pio, camera_sm, false));
 
     dma_channel_configure(
         camera_dma_chan,
         &cfg,
-        framebuffer,
+        frame_buffer,
         &camera_pio->rxf[camera_sm],
         frame_size,
         true

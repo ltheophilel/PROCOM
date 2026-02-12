@@ -81,4 +81,4 @@ int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **
 
 void camera_pio_init();
 
-#endif
+#endif /*__INIT_CAMERA_H__*/

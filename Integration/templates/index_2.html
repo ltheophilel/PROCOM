@@ -74,6 +74,9 @@
             cursor: pointer;
             flex: 1;
         }
+        p {
+            margin: 5px;
+        }
         #output {
             background: #ccc;
             width: 60%;
@@ -110,7 +113,6 @@
                 <div id="interactions">
                     <div id="prompt">
                         <input id="cmd" placeholder="Entrée pour envoyer">
-                        <!-- <div id="boutons"> -->
                         <button onclick="send()">Envoyer</button>
                     </div>
                     <div style="display: flex; flex-direction: row; gap: 10px;">
@@ -122,6 +124,8 @@
                             <p>M1 : <span id="v_mot1">0</span></p>
                             <p id="V">V35</p>
                             <p id="P_T">P4000</p>
+                            <p id="S">S128</p>
+                            <p id="D">D20</p>
                             <p id="LED">LED ON</p></b>
                         </div>
                         <button id="GO_STOP" onclick="GO_STOP()">GO</button>
@@ -177,7 +181,19 @@
             if (/^V\d+$/.test(command)) update_values("V", command);
             else if (/^P\d+$/.test(command)) update_values("P_T", command);
             else if (/^T\d+$/.test(command)) update_values("P_T", command);
+            else if (/^S\d+$/.test(command)) update_values("S", command);
+            else if (/^D\d+$/.test(command)) update_values("D", command);
             else if (/^LED\s+(ON|OFF)$/.test(command)) update_values("LED", command); 
+            else if (/^GO$/.test(command)) {
+                go = true;
+                document.getElementById("GO_STOP").textContent = "STOP";
+                document.getElementById("GO_STOP").style.background = "#f44336";
+            }
+            else if (/^STOP$/.test(command)) {
+                go = false;
+                document.getElementById("GO_STOP").textContent = "GO";
+                document.getElementById("GO_STOP").style.background = "#4CAF50";
+            }; 
             send_command(command)
         }
 

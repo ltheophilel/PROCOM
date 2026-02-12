@@ -11,6 +11,7 @@
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "ov7670_capture.pio.h"
+// #include "src/lwipopts.h"
 
 
 int main()
@@ -26,6 +27,7 @@ int main()
     /* Choix Format */
     uint16_t width_temp, height_temp;
     OV7670_size size;
+    // TODO enum pour la division
     int division = 0; // 0 : DIV 8, 1 : DIV 4, ...
     int format_out = choix_format(division, &width_temp, &height_temp, &size);
     const uint16_t width = width_temp;
@@ -41,8 +43,6 @@ int main()
     int creation_buffer_out = creation_buffers_camera(&frame_buffer, &outbuf,
                            &bw_outbuf, width, height);
 
-    for(int i=0;i<FRAME_SIZE;i++) frame_buffer[i] = i%256;
-
     while (1)
     {
         camera_capture_blocking(&camera, frame_buffer, width, height); // lecture CPU
@@ -55,15 +55,15 @@ int main()
         // for (int px = 0; px < width * height; px++)
         //     outbuf[px] = frame_buffer[px * 2];
 
-/*         // Traitement
+        // Traitement
         int seuillage_out = seuillage(outbuf, bw_outbuf,
                         width, height);
         double angle = trouver_angle(bw_outbuf, width, height);
 
-        double command = GAIN_REGLAGE * angle; */
+        double command = GAIN_REGLAGE * angle;
 
-        //if (command > max_command) command = max_command;
-        //if (command < -max_command) command = -max_command;
+        // if (command > max_command) command = max_command;
+        // if (command < -max_command) command = -max_command;
 
         // Affichage de l'angle et de la direction
         // printf("Commande = %.3f\n", command);
@@ -83,7 +83,6 @@ int main()
         // FPS max → pas de pause
         tight_loop_contents();
     }
-
     free(frame_buffer);
     free(outbuf);
     free(bw_outbuf);
