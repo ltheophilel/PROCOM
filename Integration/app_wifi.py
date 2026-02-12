@@ -63,7 +63,7 @@ class DATA_TYPE(Enum):
 
 class LEN_DATA(Enum):
     LEN_HEADER = 3
-    LEN_GENERAL_MSG = 20
+    LEN_GENERAL_MSG = 30
     LEN_MOT = 2
     LEN_FLOAT = 8
 
