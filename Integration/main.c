@@ -19,6 +19,7 @@ float P = 4.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P 
 bool mode_P = true; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
+int PROFONDEUR = 20;
 
 static char  str_v_mot[LEN_GENERAL_MSG];
 static uint64_t t_us_core_0_beginning_loop;
@@ -120,6 +121,11 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     {
         SEUIL = (short)atoi(command + 1); 
         snprintf(general_msg, LEN_GENERAL_MSG, "SEUIL set to %d", SEUIL);
+    }
+    else if (command[0] == 'D' && estNombreEntier(command + 1))
+    {
+        PROFONDEUR = (short)atoi(command + 1); 
+        snprintf(general_msg, LEN_GENERAL_MSG, "PROFONDEUR set to %d", PROFONDEUR);
     }
     else
     {
@@ -298,12 +304,12 @@ void core0_entry()
         else
         {            
             LIGNE_DETECTEE = true;
-            double* apm = trouver_angle(bw_outbuf, width, height);
+            double* apm = trouver_angle(bw_outbuf, width, height, PROFONDEUR);
             angle = apm[0];
             p = apm[1];
             m = apm[2];
             free(apm);
-            double* apm_aplati = aplatir(angle, p, m);
+            double* apm_aplati = aplatir(angle, p, m, PROFONDEUR);
             angle_aplati = apm_aplati[0];
             p_aplati = apm_aplati[1];
             m_aplati = apm_aplati[2];

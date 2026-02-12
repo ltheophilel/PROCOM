@@ -19,7 +19,7 @@ import pygetwindow as gw
 
 all_ip = ["192.168.31.233", "172.20.10.2", "192.168.1.114"]
 
-PICO_IP = all_ip[0]
+PICO_IP = all_ip[1]
 PICO_PORT = 4242
 
 WIDTH = 80
@@ -264,10 +264,10 @@ def tcp_thread():
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA:{img_base64}")
                 
-                # img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, p_aplati)
-                # img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle_aplati), 0, color=(255, 0, 0), thickness=1)
-                img_reconstructed = draw_line_on_image(img_reconstructed, m, p)
-                img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
+                img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, p_aplati)
+                img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle_aplati), 0, color=(255, 0, 0), thickness=1)
+                # img_reconstructed = draw_line_on_image(img_reconstructed, m, p)
+                # img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
                 _, buffer = cv2.imencode('.png', img_reconstructed)
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA_R:{img_base64}")

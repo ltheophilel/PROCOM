@@ -171,7 +171,7 @@ int choix_direction_binaire(uint8_t *bw_image, int width, int height)
 }
 
 
-double* trouver_angle(uint8_t *bw_image, int width, int height)
+double* trouver_angle(uint8_t *bw_image, int width, int height, int PROFONDEUR)
 {
     double * apm = malloc(3 * sizeof(double));
     apm[0] = 0.0;
@@ -269,7 +269,7 @@ void appliquerHomographie(double homographie[3][3], double x, double y, double *
     *y_aplati = yh / wh;
 }
 
-double* aplatir(double angle, double p, double m) {
+double* aplatir(double angle, double p, double m, int PROFONDEUR) {
     double *apm = malloc(3 * sizeof(double));
     if (apm == NULL) {
         return NULL; // Échec de l'allocation
