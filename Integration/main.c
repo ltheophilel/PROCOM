@@ -267,7 +267,6 @@ void core0_entry()
             cyw43_arch_poll();
         #endif
         
-        uint8_t** pointer_to_outbuf = get_outbuf_from_core(0);
         t_us_core_0_beginning_loop = time_us_64();
         core_ready_to_swap(0, false);
         camera_capture_blocking(&camera, frame_buffer, width, height);
@@ -276,11 +275,12 @@ void core0_entry()
         // Extraire Y seulement
         // for (int px = 0; px < width * height; px++)
         //     (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
-        *get_outbuf_from_core(0) = frame_buffer;
+        if (!OPTIMIZED_SEND) *get_outbuf_from_core(0) = frame_buffer;
         
         // Traitement
-        int seuillage_out = seuillage(*pointer_to_outbuf, bw_outbuf,
+        int seuillage_out = seuillage(frame_buffer, bw_outbuf,
                                       width, height, SEUIL);
+        if (OPTIMIZED_SEND) *get_outbuf_from_core(0) = bw_outbuf;
         core_ready_to_swap(0, true);
 
         if (ligne_detectee(bw_outbuf, width, height) == 0)
