@@ -55,7 +55,7 @@ dkms.conf
 *.dwo
 .directory
 
-# Build directory inside camera : 
+# Build directories :
 build
 Moteur/moteur.py
 **/.vscode/*

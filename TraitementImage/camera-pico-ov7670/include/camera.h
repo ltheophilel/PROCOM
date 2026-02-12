@@ -7,8 +7,8 @@
 #define __CAMERA_H__
 
 #include <stdint.h>
-#include "ov7670.h"
 #include <stdio.h>
+#include "ov7670.h"
 #include "pico/cyw43_arch.h"
 
 
@@ -38,11 +38,17 @@ struct camera_platform_config {
 };
 
 uint8_t camera_pixels_per_chunk(uint32_t format);
+
 int camera_do_frame(struct camera *camera, uint8_t *buf, uint16_t width, uint16_t height);
+
 int camera_init(struct camera *camera, struct camera_platform_config *params, OV7670_size size);
+
 int camera_configure(struct camera *camera, uint32_t format, uint16_t width, uint16_t height, OV7670_size size);
+
 int camera_capture_blocking(struct camera *camera, uint8_t *into, uint16_t width, uint16_t height);
+
 void camera_dma_start(uint8_t *framebuffer, size_t frame_size);
+
 void camera_capture_frame(uint8_t *buf, size_t frame_size);
 
 #endif /* __CAMERA_H__ */

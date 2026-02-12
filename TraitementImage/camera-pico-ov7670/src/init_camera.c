@@ -135,11 +135,10 @@ void camera_pio_init(void)
     pio_sm_config c =
         ov7670_capture_program_get_default_config(offset);
 
-    // sm_config_set_in_pins(&c, CAMERA_D0);
-    sm_config_set_in_pins(&c, CAMERA_PCLK_PIN);
-    sm_config_set_jmp_pin(&c, CAMERA_HREF_PIN);
+    sm_config_set_in_pins(&c, CAMERA_D0); // Pins a lire
+    sm_config_set_jmp_pin(&c, CAMERA_HREF_PIN); // timing
 
-    sm_config_set_in_shift(&c, false, true, 8);
+    sm_config_set_in_shift(&c, false, true, 8); // transmission d'octets
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
 
     for (int i = 0; i < 8; i++)
