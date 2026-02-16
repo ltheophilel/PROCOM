@@ -284,7 +284,7 @@ double* aplatir(double angle, double p, double m, int PROFONDEUR) {
 
     // Points initiaux sur la droite y = m*x + p
     double x1 = 0.0;
-    double y1 = p;
+    double y1 = m * x1 + p;
     double x2 = PROFONDEUR;
     double y2 = m * x2 + p;
 

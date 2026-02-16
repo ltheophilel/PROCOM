@@ -264,10 +264,10 @@ def tcp_thread():
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA:{img_base64}")
                 
-                img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, p_aplati)
-                img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle_aplati), 0, color=(255, 0, 0), thickness=1)
                 # img_reconstructed = draw_line_on_image(img_reconstructed, m, p)
-                # img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
+                img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle), 0, color=(255, 0, 0), thickness=1)
+                # img_reconstructed = draw_line_on_image(img_reconstructed, m_aplati, p_aplati)
+                img_reconstructed = draw_line_on_image(img_reconstructed, np.tan(angle_aplati), 0, color=(0, 255, 0), thickness=1)
                 _, buffer = cv2.imencode('.png', img_reconstructed)
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 rx_queue.put(f"IMG_DATA_R:{img_base64}")

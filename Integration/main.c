@@ -32,6 +32,7 @@ double m;
 double p_aplati;
 double m_aplati;
 double angle_aplati;
+double angle_utilise;
 uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
 bool LIGNE_DETECTEE = true; // Indique si la ligne est détectée ou non
 
@@ -286,8 +287,8 @@ void core0_entry()
         if (ligne_detectee(bw_outbuf, width, height) == 0)
         {
             // Ligne non détectée
-            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
-            chercher_ligne(vitesses[0], vitesses[1], angle);
+            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle_utilise, T); // en rpm
+            chercher_ligne(vitesses[0], vitesses[1], angle_utilise);
         }
         else
         {            
@@ -302,15 +303,17 @@ void core0_entry()
             m_aplati = apm_aplati[2];
             free(apm_aplati);
             angle = PI*angle/180;
+            angle_aplati = PI*angle_aplati/180;
+            angle_utilise = angle_aplati;
             
             if (mode_P) {
                 T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes
             }
-            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle, T); // en rpm
+            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle_utilise, T); // en rpm
             v_mot_droit = vitesses[0];
             v_mot_gauche = vitesses[1];
             printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
-                angle, v_mot_droit, v_mot_gauche);
+                angle_utilise, v_mot_droit, v_mot_gauche);
             
             if (!pause) {
                 motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
