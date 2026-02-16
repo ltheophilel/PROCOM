@@ -1,52 +1,36 @@
+# ===================== TCP thread ======================
+# Désactiver les logs de Werkzeug
+import queue
 import struct
 import sys
-# import pyautogui
-from flask import Flask, request, jsonify, render_template
-import socket
-import threading
-import queue
 import time
 import cv2
 import logging
 import numpy as np
 from enum import Enum
-import webbrowser
 import base64
 import select
-import pygetwindow as gw
 
 
-
-all_ip = ["192.168.31.233", "172.20.10.2", "192.168.1.114"]
-
-PICO_IP = all_ip[1]
-PICO_PORT = 4242
-
-WIDTH = 80
-HEIGHT = 60
-IMAGE_SIZE = WIDTH * HEIGHT  # 4800 octets
-BUF_SIZE = 1400 # 1024
-
-
-sock = None
-sock_lock = threading.Lock()
 running = True
 
 # file de réception non bloquante
+global rx_queue
 rx_queue = queue.Queue()
-len_rx = 0
 data = bytearray()
 
-app = Flask(__name__)
-general_msg_for_debug = ""
+general_msg = ""
 p = 0.0
 m = 0.0
 angle = 0.0
 p_aplati = 0.0
 m_aplati = 0.0
 
-# ===================== TCP thread ======================
-# Désactiver les logs de Werkzeug
+
+WIDTH = 80
+HEIGHT = 60
+IMAGE_SIZE = WIDTH * HEIGHT  # 4800 octets
+
 global log
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)  # Ne montre que les erreurs
@@ -66,6 +50,64 @@ class LEN_DATA(Enum):
     LEN_GENERAL_MSG = 30
     LEN_MOT = 2
     LEN_FLOAT = 8
+    LEN_IMG = 600
+
+def read_general_msg_from_bytes(data, offset):  
+    general_msg = f"{data[offset:offset+LEN_DATA.LEN_GENERAL_MSG.value]
+                               .split(b'\x00', 1)[0]
+                               .decode('utf-8', errors='ignore')
+                               .strip()}"
+    return general_msg, offset + LEN_DATA.LEN_GENERAL_MSG.value
+
+def read_uint16_from_bytes(data, offset):
+     mot0_data = struct.unpack('<h', bytes(data[offset:offset+LEN_DATA.LEN_MOT.value]))[0]
+     return mot0_data, offset + LEN_DATA.LEN_MOT.value
+
+def read_float_from_bytes(data, offset):
+    float_data = float(data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    return float_data, offset + LEN_DATA.LEN_FLOAT.value
+
+def read_image_from_bytes(data, offset):
+    img_data = bytearray()  # Réinitialiser les données pour une nouvelle image
+    # print([format(b, '08b') for b in packet_data[offset:]])
+    for index in range(offset, offset + LEN_DATA.LEN_IMG.value):
+        huit_pixels = data[index]
+        for i in range(8):  # Traiter chaque bit
+            pixel_value = 255 if (huit_pixels & (1 << (7 - i))) else 0
+            img_data.append(pixel_value)
+    return img_data, offset + LEN_DATA.LEN_IMG.value
+    # color = 1  # Méthode alternative (RLE)
+    # for index in range(offset, len(packet_data), 2):
+    #     nb_pixels = (packet_data[index] << 8) | packet_data[index + 1]
+    #     new_data = bytearray([0 if color == 0 else 255] * nb_pixels)
+    #     data.extend(new_data)
+    #     color = 1 - color  # Alterner entre noir et blanc
+
+def read_from_bytes(data, offset, type):
+    if type == "general_msg":
+        return read_general_msg_from_bytes(data, offset)
+    elif type == "uint16":
+        return read_uint16_from_bytes(data, offset)
+    elif type == "float":
+        return read_float_from_bytes(data, offset)
+    elif type == "image":
+        return read_image_from_bytes(data, offset)
+    else:
+        raise ValueError(f"Type de données inconnu : {type}")
+
+def read_all_in_one_from_bytes(data):
+    offset = 0
+    general_msg, offset = read_general_msg_from_bytes(data, offset)
+    mot0_data, offset = read_uint16_from_bytes(data, offset)
+    mot1_data, offset = read_uint16_from_bytes(data, offset)
+    p, offset = read_float_from_bytes(data, offset)
+    m, offset = read_float_from_bytes(data, offset)
+    angle, offset = read_float_from_bytes(data, offset)
+    p_aplati, offset = read_float_from_bytes(data, offset)
+    m_aplati, offset = read_float_from_bytes(data, offset)
+    angle_aplati, offset = read_float_from_bytes(data, offset)
+    img_data, offset = read_image_from_bytes(data, offset)
+    return general_msg, mot0_data, mot1_data, p, m, angle, p_aplati, m_aplati, angle_aplati, img_data
 
 def correct_perspective(image, M):
     # Appliquer la transformation
@@ -75,54 +117,71 @@ def correct_perspective(image, M):
 def receive_all_in_one(packet_data):
     global data, rx_queue, p, m, angle, p_aplati, m_aplati, angle_aplati
     offset = 0
+    general_msg, offset = read_general_msg_from_bytes(data, offset)
+    mot0_data, offset = read_uint16_from_bytes(data, offset)
+    mot1_data, offset = read_uint16_from_bytes(data, offset)
+    p, offset = read_float_from_bytes(data, offset)
+    m, offset = read_float_from_bytes(data, offset)
+    angle, offset = read_float_from_bytes(data, offset)
+    p_aplati, offset = read_float_from_bytes(data, offset)
+    m_aplati, offset = read_float_from_bytes(data, offset)
+    angle_aplati, offset = read_float_from_bytes(data, offset)
+    data, offset = read_image_from_bytes(data, offset)
+    rx_queue.put(general_msg)
+    rx_queue.put(f"M0 : {mot0_data}")
+    rx_queue.put(f"M1 : {mot1_data}")
+
+
     # print(packet_data)
     # General
     # print(packet_data[0:LEN_DATA.LEN_GENERAL_MSG.value]
     #                            .split(b'\x00', 1)[0])
-    general_msg_for_debug = f"{packet_data[0:LEN_DATA.LEN_GENERAL_MSG.value]
-                               .split(b'\x00', 1)[0]
-                               .decode('utf-8', errors='ignore')
-                               .strip()}"
-    rx_queue.put(general_msg_for_debug) 
-    offset += LEN_DATA.LEN_GENERAL_MSG.value
-    # print("Received : " + general_msg_for_debug)
-    # Mot 0
-    mot0_data = struct.unpack('<h', bytes(packet_data[offset:offset+2]))[0]#(packet_data[offset + 1] << 8) | packet_data[offset]
-    offset += LEN_DATA.LEN_MOT.value
-    rx_queue.put(f"M0 : {mot0_data}")
-    # Mot 1
-    mot1_data = struct.unpack('<h', bytes(packet_data[offset:offset+2]))[0]#(packet_data[offset + 1] << 8) | packet_data[offset]
-    offset += LEN_DATA.LEN_MOT.value
-    rx_queue.put(f"M1 : {mot1_data}")
-    # p et m, équation de la droite mx+p
-    p = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    m = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    # angle
-    angle = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    # p et m aplatis, équation de la droite mx+p
-    p_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    m_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    angle_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    # Image
-    data = bytearray()  # Réinitialiser les données pour une nouvelle image
-    # print([format(b, '08b') for b in packet_data[offset:]])
-    for index in range(offset, len(packet_data)):
-        huit_pixels = packet_data[index]
-        for i in range(8):  # Traiter chaque bit
-            pixel_value = 255 if (huit_pixels & (1 << (7 - i))) else 0
-            data.append(pixel_value)
-    # color = 1  # Méthode alternative (RLE)
-    # for index in range(offset, len(packet_data), 2):
-    #     nb_pixels = (packet_data[index] << 8) | packet_data[index + 1]
-    #     new_data = bytearray([0 if color == 0 else 255] * nb_pixels)
-    #     data.extend(new_data)
-    #     color = 1 - color  # Alterner entre noir et blanc
+
+
+    # general_msg = f"{packet_data[0:LEN_DATA.LEN_GENERAL_MSG.value]
+    #                            .split(b'\x00', 1)[0]
+    #                            .decode('utf-8', errors='ignore')
+    #                            .strip()}"
+    # rx_queue.put(general_msg) 
+    # offset += LEN_DATA.LEN_GENERAL_MSG.value
+    # # print("Received : " + general_msg)
+    # # Mot 0
+    # mot0_data = struct.unpack('<h', bytes(packet_data[offset:offset+2]))[0]#(packet_data[offset + 1] << 8) | packet_data[offset]
+    # offset += LEN_DATA.LEN_MOT.value
+    # rx_queue.put(f"M0 : {mot0_data}")
+    # # Mot 1
+    # mot1_data = struct.unpack('<h', bytes(packet_data[offset:offset+2]))[0]#(packet_data[offset + 1] << 8) | packet_data[offset]
+    # offset += LEN_DATA.LEN_MOT.value
+    # rx_queue.put(f"M1 : {mot1_data}")
+    # # p et m, équation de la droite mx+p
+    # p = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    # offset += LEN_DATA.LEN_FLOAT.value
+    # m = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    # offset += LEN_DATA.LEN_FLOAT.value
+    # # angle
+    # angle = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    # offset += LEN_DATA.LEN_FLOAT.value
+    # # p et m aplatis, équation de la droite mx+p
+    # p_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    # offset += LEN_DATA.LEN_FLOAT.value
+    # m_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    # offset += LEN_DATA.LEN_FLOAT.value
+    # angle_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+    # offset += LEN_DATA.LEN_FLOAT.value
+    # # Image
+    # data = bytearray()  # Réinitialiser les données pour une nouvelle image
+    # # print([format(b, '08b') for b in packet_data[offset:]])
+    # for index in range(offset, offset + LEN_DATA.LEN_IMG.value):
+    #     huit_pixels = packet_data[index]
+    #     for i in range(8):  # Traiter chaque bit
+    #         pixel_value = 255 if (huit_pixels & (1 << (7 - i))) else 0
+    #         data.append(pixel_value)
+    # # color = 1  # Méthode alternative (RLE)
+    # # for index in range(offset, len(packet_data), 2):
+    # #     nb_pixels = (packet_data[index] << 8) | packet_data[index + 1]
+    # #     new_data = bytearray([0 if color == 0 else 255] * nb_pixels)
+    # #     data.extend(new_data)
+    # #     color = 1 - color  # Alterner entre noir et blanc
 
 
 def recv_exact(sock, n):
@@ -155,7 +214,6 @@ def receive_data(sock):
 
     # 2. Lire le contenu exact du paquet
     packet_data = recv_exact(sock, packet_size)
-    # packet_data = sock.recv(packet_size)
     # print(f"[TCP] Données reçues : {len(packet_data) if packet_data else 0} octets (attendu {packet_size} octets)")
     if packet_data is None:
         print(header, packet_type, packet_size)
@@ -286,61 +344,3 @@ def close_everything():
     if sock:
         sock.close()
     sys.exit(0)
-    
-
-# ====================== routes Flask ======================
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/send", methods=["POST"])
-def send_cmd():
-    cmd = request.json.get("command", "")
-    print("[WEB] Envoi commande :", cmd)
-
-    with sock_lock:
-        sock.send((cmd + "\n").encode("utf-8"))
-
-    return jsonify({"status": "ok"})
-
-
-@app.route("/read")
-def read():
-    # Si la queue est vide, on renvoie une liste vide au lieu de None
-    if rx_queue.empty():
-        return jsonify({"data": [], "v_mot0": None, "v_mot1": None})
-    
-    all_msgs = {"data": [], "v_mot0": 0, "v_mot1": 0}
-    while not rx_queue.empty():
-        msg = rx_queue.get()
-        if msg.startswith("M0 :"): 
-            all_msgs["v_mot0"] = msg.split(" : ")[1]
-        elif msg.startswith("M1 :"):
-            all_msgs["v_mot1"] = msg.split(" : ")[1]
-        else:
-            all_msgs["data"].append(msg)
-    return jsonify(all_msgs)
-
-
-# ====================== main ======================
-if __name__ == "__main__":
-    # thread TCP
-    log.disabled = False
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setblocking(0)
-    sock.settimeout(5)
-    print(f"[TCP] Connexion à {PICO_IP}:{PICO_PORT}…")
-    sock.connect((PICO_IP, PICO_PORT))
-    sock.settimeout(None)
-    print("[TCP] Connecté au Pico.")
-    t = threading.Thread(target=tcp_thread, daemon=True)
-    t.start()
-
-    # démarrage Flask
-    print("[WEB] Démarrage serveur…")
-    adresse = "http://127.0.0.1:5000"
-    webbrowser.open(adresse)
-    app.run(host="0.0.0.0", port=5000, debug=False)
-    running = False
-    t.join()
