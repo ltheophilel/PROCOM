@@ -303,11 +303,8 @@ double* aplatir(double angle, double p, double m, int PROFONDEUR) {
     double m_aplati = (y2_aplati - y1_aplati) / (x2_aplati - x1_aplati);
     double p_aplati = y1_aplati - m_aplati * x1_aplati;
 
-    // Calcul de la profondeur en pixels (à adapter selon ton contexte)
-    double profondeur_aplati = PROFONDEUR / 60.0 * 190.0;
-
     // Calcul de l'angle (en degrés)
-    double angle_aplati = atan((m_aplati * profondeur_aplati + p_aplati) / profondeur_aplati) * (180.0 / PI);
+    double angle_aplati = atan(y2_aplati / x2_aplati) * (180.0 / PI);
 
     apm[0] = angle_aplati;
     apm[1] = p_aplati;
