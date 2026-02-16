@@ -31,9 +31,6 @@
                         
                     </div>
                 </div>
-                    <!-- <button onclick="clearCmd()">Effacer</button> -->
-                <!-- </div> -->
-                 <!-- <h3>Logs console :</h3> -->
             <pre id="output"></pre>
             </div>
             
@@ -45,5 +42,28 @@
         </div>
     </div>
     <script src="script.js"></script>
+    <script>
+        // Charger le fichier JSON
+        fetch('../config.json')
+            .then(response => response.json())
+            .then(data => {
+                // Afficher les données dans la page
+                elem_PT = document.getElementById('P_T');
+                if (data.initial_config.mode_P) {
+                    elem_PT.innerHTML = "P" + (data.initial_config.P*1000);
+                } else {
+                    elem_PT.innerHTML = "T" + (data.initial_config.T*1000);
+                }
+                elem_D = document.getElementById('D');
+                elem_D.innerHTML = "D" + data.initial_config.D;
+                elem_V = document.getElementById('V');
+                elem_V.innerHTML = "V" + data.initial_config.V;
+                elem_S = document.getElementById('S');
+                elem_S.innerHTML = "S" + data.initial_config.S;
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+            });
+    </script>
 </body>
 </html>

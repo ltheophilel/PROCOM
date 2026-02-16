@@ -4,6 +4,7 @@
 #include "hardware/i2c.h"
 #include "pico/multicore.h"
 #include "pico/sync.h"
+// #include <jansson.h>
 
 // 2* car erreur dans pwm_lookup_table.h
 #define Vmax 2*MAX_RPM*R*(2*PI)/60.0f // conversion rpm -> m/s. Environ 1 m/s
@@ -343,7 +344,7 @@ void core0_entry()
 
 int main() {
     stdio_init_all();
-    sleep_ms(2000);
+    sleep_ms(500);
     coded_image = (uint8_t*)malloc(1024*sizeof(uint8_t)); // Taille max possible
     mutex_init(&multicore_lock);
     multicore_launch_core1(core1_entry);

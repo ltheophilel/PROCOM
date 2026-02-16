@@ -16,6 +16,8 @@
     ],
     "initial_config": {
         "P": 4.0,
+        "T": 1.0,
+        "mode_P": true,
         "D": 30,
         "S": 128,
         "V" : 35
