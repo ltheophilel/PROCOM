@@ -12,10 +12,11 @@
 
 #define OPTIMIZED_SEND true
 
-short pourcentage_Vmax = 35; // en pourcentage de Vmax (environ vitesse en cm/s)
+short pourcentage_Vmax = 20; // en pourcentage de Vmax (environ vitesse en cm/s)
+short pourcentage_V_marche_arriere = 60; // en pourcentage de V, vitesse utilisée lors de la recherche de ligne
 bool pause = true;
 float T = 1.0f; // 0.50f; // temps pour faire un virage (s)
-float P = 4.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes)
+float P = 15.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes)
 bool mode_P = true; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
@@ -125,6 +126,11 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     {
         PROFONDEUR = (short)atoi(command + 1); 
         snprintf(general_msg, LEN_GENERAL_MSG, "PROFONDEUR set to %d", PROFONDEUR);
+    }
+    else if (command[0] == 'R' && estNombreEntier(command + 1))
+    {
+        pourcentage_V_marche_arriere = (short)atoi(command + 1); 
+        snprintf(general_msg, LEN_GENERAL_MSG, "vitesse_marche_arriere set to %d%%", pourcentage_V_marche_arriere);
     }
     else
     {
@@ -282,11 +288,11 @@ void core0_entry()
         if (OPTIMIZED_SEND) *get_outbuf_from_core(0) = bw_outbuf;
         core_ready_to_swap(0, true);
 
-        if (ligne_detectee(bw_outbuf, width, height) == 0)
+        if (ligne_detectee(bw_outbuf, width, height) == 0 && !pause)
         {
             // Ligne non détectée
             int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle_utilise, T); // en rpm
-            chercher_ligne(vitesses[0], vitesses[1], angle_utilise);
+            chercher_ligne(vitesses[0], vitesses[1], angle_utilise, pourcentage_V_marche_arriere);
         }
         else
         {            

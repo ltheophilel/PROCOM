@@ -58,6 +58,6 @@ void motor_set_direction(moteur_config *motor, bool direction);
 void motor_define_direction_from_pwm(int v_mot_droit, int v_mot_gauche);
 float motor_get_speed(moteur_config *motor);
 uint32_t pwm_lookup_for_rpm(float target_rpm);
-void chercher_ligne(int v_droit, int v_gauche, double angle);
+void chercher_ligne(int v_droit, int v_gauche, double angle, short pourcentage_V_marche_arriere);
 
 #endif

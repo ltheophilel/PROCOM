@@ -218,13 +218,14 @@ uint32_t pwm_lookup_for_rpm(float target_rpm) {
     return PWM_WRAP;
 }
 
-void chercher_ligne(int v_droit, int v_gauche, double angle) {
+void chercher_ligne(int v_droit, int v_gauche, double angle, short pourcentage_V_marche_arriere) {
+     // En mode recherche de ligne, on fait un virage dans la direction opposée à l'angle détecté pour essayer de retrouver la ligne
     // En mode recherche de ligne, on fait un virage dans la direction opposée à l'angle détecté pour essayer de retrouver la ligne
     int v_mot_droit = -v_gauche; // *-1 pour inverser le sens de rotation
     int v_mot_gauche = -v_droit; // et on inverse aussi les moteurs (droite/gauche) pour faire un virage dans la bonne direction
     printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
             angle, v_mot_droit, v_mot_gauche);
     motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
-    motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)); // /2 car erreur dans rpm_lookup_table.h
-    motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)); // *signe pour avoir la valeur absolue
+    motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)*pourcentage_V_marche_arriere/100.0); // /2 car erreur dans rpm_lookup_table.h
+    motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)*pourcentage_V_marche_arriere/100.0); // *signe pour avoir la valeur absolue
 }
