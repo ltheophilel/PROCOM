@@ -1,130 +1,69 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="utf-8">
     <title>Interface Microcontrôleur</title>
-    <style>
-        /* Un peu de CSS pour éviter que tout ne saute */
-        #global { display: flex; gap: 20px; }
-        #Gauche { width: 40%; }
-        #Droite { width: 60%; }
-        #output { 
-            background: #eee; 
-            padding: 10px; 
-            height: 300px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column;
-        }
-        canvas { background: #555; width: 100%; max-width: 640px; height: auto; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>PROCOM Base Roulante</h1>
+    <!-- <h1>PROCOM Base Roulante</h1> -->
 
     <div id="global">
         <div id="Gauche">
-            <p>Commande :</p>
-            <input id="cmd" placeholder="Entrée pour envoyer" style="width: 70%">
-            <button onclick="send()">Envoyer</button>
-            
-            <h3>Logs console :</h3>
+            <div id="commande">
+                <div id="interactions">
+                    <div id="prompt">
+                        <input id="cmd" placeholder="Entrée pour envoyer">
+                        <button onclick="send()">Envoyer</button>
+                    </div>
+                    <div style="display: flex; flex-direction: row; gap: 10px;">
+                        <div id="moteurs"> <b>
+                            <p>M0 : <span id="v_mot0">0</span></p>
+                            <p>M1 : <span id="v_mot1">0</span></p>
+                            <p id="V">V35</p>
+                            <p id="P_T">P4000</p>
+                            <p id="S">S128</p>
+                            <p id="D">D30</p>
+                            <p id="LED">LED ON</p></b>
+                        </div>
+                        <button id="GO_STOP" onclick="GO_STOP()">GO</button>
+                        
+                    </div>
+                </div>
             <pre id="output"></pre>
+            </div>
+            
+            <canvas id="camCanvas" width="80" height="60"></canvas>
         </div>
 
         <div id="Droite">
-            <p>Vitesse Moteur Droit (M0), en RPM : <b><span id="v_mot0">0</span></b></p>
-            <p>Vitesse Moteur Gauche (M1), en RPM : <b><span id="v_mot1">0</span></b></p>
-            <canvas id="camCanvas" width="80" height="60"></canvas> 
-            <canvas id="camCanvasR" width="140" height="190"></canvas> 
-            </div>
+            <canvas id="camCanvasR" width="140" height="190"></canvas>
+        </div>
     </div>
-
+    <script src="script.js"></script>
     <script>
-        // --- Initialisation des variables ---
-        const canvas = document.getElementById('camCanvas');
-        const ctx = canvas.getContext('2d');
-        const canvasR = document.getElementById('camCanvasR');
-        const ctxR = canvasR.getContext('2d');
-        const out = document.getElementById("output");
-        const cmdInput = document.getElementById('cmd');
-
-        // Gestion de la touche Entrée sur l'input
-        cmdInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") send();
-        });
-
-        // --- Fonctions ---
-        async function send() {
-            const command = cmdInput.value;
-            if(!command) return;
-            
-            try {
-                await fetch('/send', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({command})
-                });
-                cmdInput.value = '';
-            } catch (e) { console.error("Erreur envoi:", e); }
-        }
-
-        async function readLoop() {
-            try {
-                const res = await fetch("/read");
-                if (!res.ok) throw new Error("Server error");
-                const json = await res.json();
-
-                if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {
-                    json.data.forEach(line => {
-                        if (line.startsWith("IMG_DATA:")) {
-                            const base64Data = line.split("IMG_DATA:")[1];
-                            updateCanvasFromBase64(base64Data, false);
-                        } else if (line.startsWith("IMG_DATA_R:")) {
-                            const base64Data = line.split("IMG_DATA_R:")[1];
-                            updateCanvasFromBase64(base64Data, true);
-                        } else {
-                            // On garde les 50 dernières lignes seulement pour la performance
-                            if (line.trim() !== "\x00\x00\x00\x00failed" && line.trim() !== "") { // Ignore les lignes vides
-                                const newText = document.createElement("div");
-                                newText.textContent = `> ${line}`;
-                                out.prepend(newText); 
-                                if(out.children.length > 50) out.lastChild.remove();
-                            }
-                        }
-                    });
+        // Charger le fichier JSON
+        fetch('../config.json')
+            .then(response => response.json())
+            .then(data => {
+                // Afficher les données dans la page
+                elem_PT = document.getElementById('P_T');
+                if (data.initial_config.mode_P) {
+                    elem_PT.innerHTML = "P" + (data.initial_config.P*1000);
+                } else {
+                    elem_PT.innerHTML = "T" + (data.initial_config.T*1000);
                 }
-                // Dans la fonction readLoop()
-                // Mise à jour des moteurs (si présents)
-                if (json.v_mot1 !== null && json.v_mot1 !== undefined) {
-                    document.getElementById("v_mot1").textContent = json.v_mot1;
-                }
-                if (json.v_mot0 !== null && json.v_mot0 !== undefined) {
-                    document.getElementById("v_mot0").textContent = json.v_mot0;
-                }
-
-            } catch (e) { 
-                console.error("Erreur lecture:", e); 
-            } finally {
-                // On relance la boucle même en cas d'erreur, après un petit délai
-                setTimeout(readLoop, 50);
-            }
-        }
-
-        function updateCanvasFromBase64(base64, R = false) {
-            const img = new Image();
-            img.onload = function() {
-                // Optionnel : lissage d'image (false pour garder l'aspect pixelisé du 80x60)
-                const canvas_ = R ? canvasR : canvas;
-                const ctx_ = R ? ctxR : ctx;
-                ctx_.imageSmoothingEnabled = false;
-                ctx_.drawImage(img, 0, 0, canvas_.width, canvas_.height);
-            };
-            img.src = "data:image/png;base64," + base64;
-        }
-
-        // Lancement de la boucle
-        readLoop();
+                elem_D = document.getElementById('D');
+                elem_D.innerHTML = "D" + data.initial_config.D;
+                elem_V = document.getElementById('V');
+                elem_V.innerHTML = "V" + data.initial_config.V;
+                elem_S = document.getElementById('S');
+                elem_S.innerHTML = "S" + data.initial_config.S;
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+            });
     </script>
 </body>
 </html>

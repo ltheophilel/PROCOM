@@ -4,9 +4,10 @@ import cv2
 import time
 
 # === CONFIGURATION ===
-PORT = "/dev/ttyACM0"  # remplace si nécessaire
+PORT = "/dev/ttyACM0"
 BAUD = 115200      # Le baud est ignoré par USB CDC mais requis par pyserial
 TIMEOUT = 1
+SCREEN_RES = 1920, 1080 # Resolution de l'ecran
 
 # Ouvre le port série
 ser = serial.Serial(PORT, BAUD, timeout=TIMEOUT)
@@ -15,9 +16,10 @@ ser = serial.Serial(PORT, BAUD, timeout=TIMEOUT)
 cv2.namedWindow("OV7670 Video", cv2.WINDOW_NORMAL)
 cv2.setWindowProperty("OV7670 Video", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
+# Mesure de FPS en transmission
 frame = 0
-
 start = time.time()
+
 while True:
     try:
         # Lire l'en-tête PPM/PGM
@@ -25,13 +27,13 @@ while True:
         if header not in ("P6", "P5"):
             continue
 
-        # Lire les dimensions
+        # Lecture des dimensions
         dims = ser.readline().decode(errors='ignore').strip()
         if " " not in dims:
             continue
         width, height = map(int, dims.split())
 
-        # Lire maxval
+        # Lire la valeur max
         maxval = ser.readline().decode(errors='ignore').strip()
         if maxval != "255":
             continue
@@ -40,9 +42,9 @@ while True:
         if header == "P6":
             expected_bytes = width * height * 3     # RGB
         else:  # P5
-            expected_bytes = width * height         # grayscale (Y only)
+            expected_bytes = width * height         # Echelle de gris (Y seul)
 
-        # Lire l'image
+        # Lecture de l'image
         data = bytearray()
         while len(data) < expected_bytes:
             chunk = ser.read(expected_bytes - len(data))
@@ -52,21 +54,20 @@ while True:
         if len(data) != expected_bytes:
             continue
 
-        # Convertir en image numpy
+        # Conversion en image numpy
         if header == "P6":
             # RGB
             img = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3))
         else:
-            # Grayscale
+            # Echelle de gris
             gray = np.frombuffer(data, dtype=np.uint8).reshape((height, width))
             img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
-        # Afficher la frame
-        screen_res = 1920, 1080
-        resized_img = cv2.resize(img, screen_res, interpolation=cv2.INTER_NEAREST)
+        # Afficher l'image
+        resized_img = cv2.resize(img, SCREEN_RES, interpolation=cv2.INTER_NEAREST)
         cv2.imshow("OV7670 Video", resized_img)
         frame+=1
-        # Quitter avec ESC
+        # Quitter avec Echap
         if cv2.waitKey(1) & 0xFF == 27:
             end = time.time()
             break
