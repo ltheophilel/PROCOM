@@ -34,8 +34,6 @@ double m_aplati;
 double angle_aplati;
 double angle_utilise;
 uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
-bool LIGNE_DETECTEE = true; // Indique si la ligne est détectée ou non
-
 
 static uint8_t* outbuf1;
 static uint8_t* outbuf2;

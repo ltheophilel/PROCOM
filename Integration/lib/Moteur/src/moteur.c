@@ -225,6 +225,6 @@ void chercher_ligne(int v_droit, int v_gauche, double angle) {
     printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
             angle, v_mot_droit, v_mot_gauche);
     motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
-    motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)/2.0); // /2 car erreur dans rpm_lookup_table.h
-    motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)/2.0); // *signe pour avoir la valeur absolue
+    motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit)); // /2 car erreur dans rpm_lookup_table.h
+    motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)); // *signe pour avoir la valeur absolue
 }
