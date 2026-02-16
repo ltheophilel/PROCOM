@@ -1,0 +1,23 @@
+{
+    "info": {
+        "info pour utilisateur": "Configuration par défaut du robot, non utilisé à l'heure actuelle"
+    },
+    "data_in_packet": [
+        ["general_msg", 30],
+        ["v_mot0", "uint16"],
+        ["v_mot1", "uint16"],
+        ["p", "float"],
+        ["m", "float"],
+        ["angle", "float"],
+        ["p_aplati", "float"],
+        ["m_aplati", "float"],
+        ["angle_aplati", "float"],
+        ["image", 600]
+    ],
+    "initial_config": {
+        "P": 4.0,
+        "D": 30,
+        "S": 128,
+        "V" : 35
+    }
+}
