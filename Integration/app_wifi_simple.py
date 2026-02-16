@@ -1,5 +1,6 @@
 
 # import pyautogui
+import queue
 import socket
 import threading
 import webbrowser
@@ -9,8 +10,15 @@ all_ip = ["192.168.31.233", "172.20.10.2", "192.168.1.114"]
 PICO_IP = all_ip[1]
 PICO_PORT = 4242
 
+
+
+
+global sock, rx_queue
+sock = None
+rx_queue = queue.Queue()
+
 # ====================== routes Flask ======================
-from lib.IHM_python.IHM_html import app, sock
+from lib.IHM_python.IHM_html import app
 
 # ====================== TCP thread ======================
 from lib.IHM_python.IHM_communication import tcp_thread, log
@@ -26,7 +34,7 @@ if __name__ == "__main__":
     sock.connect((PICO_IP, PICO_PORT))
     sock.settimeout(None)
     print("[TCP] Connecté au Pico.")
-    t = threading.Thread(target=tcp_thread, daemon=True)
+    t = threading.Thread(target=tcp_thread, args=sock, daemon=True)
     t.start()
 
     # démarrage Flask

@@ -14,9 +14,9 @@ import select
 
 running = True
 
-# file de réception non bloquante
-global rx_queue
-rx_queue = queue.Queue()
+global sock, rx_queue
+
+
 data = bytearray()
 
 general_msg = ""
@@ -290,8 +290,8 @@ def draw_line_on_image(img, slope, x_intercept, color=(0, 0, 255), thickness=1):
 
 
 
-def tcp_thread():
-    global sock, running, temps_debut, log, p, m, angle, p_aplati, m_aplati, angle_aplati
+def tcp_thread(sock):
+    global running, temps_debut, log, p, m, angle, p_aplati, m_aplati, angle_aplati
     print("[TCP] Thread démarré.")
 
     # Calculer la matrice de transformation

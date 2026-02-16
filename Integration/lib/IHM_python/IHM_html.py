@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
-sock = None
+global sock, rx_queue
 sock_lock = threading.Lock()
 
 @app.route("/")

@@ -4,11 +4,10 @@
 <head>
     <meta charset="utf-8">
     <title>Interface Microcontrôleur</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <!-- <h1>PROCOM Base Roulante</h1> -->
-
     <div id="global">
         <div id="Gauche">
             <div id="commande">
@@ -41,8 +40,8 @@
             <canvas id="camCanvasR" width="140" height="190"></canvas>
         </div>
     </div>
-    <script src="script.js"></script>
-    <script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- <script>
         // Charger le fichier JSON
         fetch('../config.json')
             .then(response => response.json())
@@ -64,6 +63,6 @@
             .catch(error => {
                 console.error('Erreur:', error);
             });
-    </script>
+    </script> -->
 </body>
 </html>
