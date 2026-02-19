@@ -176,7 +176,7 @@ double* trouver_angle(uint8_t *bw_image, int width, int height, int PROFONDEUR)
     double * apm = malloc(3 * sizeof(double));
     apm[0] = 0.0;
     apm[1] = 0.0;
-    apm[2] = INFINITY;
+    apm[2] = 0.0;
     long sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;
     long n = 0;
 

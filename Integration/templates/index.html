@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8">
     <title>Interface Microcontrôleur</title>
-    <!-- <link rel="stylesheet" href="style.css"> -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="style.css">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
 </head>
 <body>
     <!-- <h1>PROCOM Base Roulante</h1> -->
@@ -22,7 +22,7 @@
                             <p>M0 : <span id="v_mot0">0</span></p>
                             <p>M1 : <span id="v_mot1">0</span></p>
                             <p id="V">V20</p>
-                            <p id="P_T">P15000</p>
+                            <p id="P_T">T300</p> <!-- P15000 ancien défaut -->
                             <p id="S">S128</p>
                             <p id="D">D30</p>
                             <p id="R">R60</p>
@@ -42,8 +42,8 @@
             <canvas id="camCanvasR" width="140" height="190"></canvas>
         </div>
     </div>
-    <!-- <script src="script.js"></script> -->
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="script.js"></script>
+    <!-- <script src="{{ url_for('static', filename='script.js') }}"></script> -->
     <!-- <script>
         // Charger le fichier JSON
         fetch('../config.json')

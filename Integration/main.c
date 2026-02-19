@@ -15,9 +15,9 @@
 short pourcentage_Vmax = 20; // en pourcentage de Vmax (environ vitesse en cm/s)
 short pourcentage_V_marche_arriere = 60; // en pourcentage de V, vitesse utilisée lors de la recherche de ligne
 bool pause = true;
-float T = 1.0f; // 0.50f; // temps pour faire un virage (s)
+float T = 0.3f; // 0.50f; // temps caractéristique pour faire un virage (s). Virage éffectué en 3T environ. Si mode_P, T est calculé dynamiquement en fonction de P et de la vitesse pour que le gain soit constant (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f))).
 float P = 15.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes)
-bool mode_P = true; // true : mode proportionnel, false : mode fixe
+bool mode_P = false; // true : mode proportionnel, false : mode fixe
 char general_msg[LEN_GENERAL_MSG];
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
 int PROFONDEUR = 30;

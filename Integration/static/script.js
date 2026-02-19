@@ -28,10 +28,17 @@ async function send_command(command) {
 async function send() {
     const command = cmdInput.value;
     if (/^V\d+$/.test(command)) update_values("V", command);
-    else if (/^P\d+$/.test(command)) update_values("P_T", command);
-    else if (/^T\d+$/.test(command)) update_values("P_T", command);
+    else if (/^P\d+$/.test(command)) {
+        T = 1000.0 / (parseFloat(command.substring(1)) / 1000.0 * (parseFloat(document.getElementById("V").textContent.substring(1)) / 100.0)); // Calcul de T en mode proportionnel pour que le gain soit constant
+        update_values("P_T", command + ` (T${T.toFixed(0)})`);
+    }
+    else if (/^T\d+$/.test(command)) {
+        P = 1000.0 / (parseFloat(command.substring(1)) / 1000.0 * (parseFloat(document.getElementById("V").textContent.substring(1)) / 100.0)); // Calcul de T en mode proportionnel pour que le gain soit constant
+        update_values("P_T", command + ` (P${P.toFixed(0)})`);
+    }
     else if (/^S\d+$/.test(command)) update_values("S", command);
     else if (/^D\d+$/.test(command)) update_values("D", command);
+    else if (/^R\d+$/.test(command)) update_values("R", command);
     else if (/^LED\s+(ON|OFF)$/.test(command)) update_values("LED", command); 
     else if (/^GO$/.test(command)) {
         go = true;

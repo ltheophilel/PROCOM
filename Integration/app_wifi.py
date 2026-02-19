@@ -95,20 +95,23 @@ def receive_all_in_one(packet_data):
     offset += LEN_DATA.LEN_MOT.value
     rx_queue.put(f"M1 : {mot1_data}")
     # p et m, équation de la droite mx+p
-    p = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    m = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    # angle
-    angle = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    # p et m aplatis, équation de la droite mx+p
-    p_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    m_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
-    angle_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
-    offset += LEN_DATA.LEN_FLOAT.value
+    try :
+        p = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+        offset += LEN_DATA.LEN_FLOAT.value
+        m = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+        offset += LEN_DATA.LEN_FLOAT.value
+        # angle
+        angle = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+        offset += LEN_DATA.LEN_FLOAT.value
+        # p et m aplatis, équation de la droite mx+p
+        p_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+        offset += LEN_DATA.LEN_FLOAT.value
+        m_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+        offset += LEN_DATA.LEN_FLOAT.value
+        angle_aplati = float(packet_data[offset:offset+LEN_DATA.LEN_FLOAT.value-1].decode('utf-8', errors='ignore').strip())
+        offset += LEN_DATA.LEN_FLOAT.value
+    except:
+        offset = LEN_DATA.LEN_GENERAL_MSG.value + 2*LEN_DATA.LEN_MOT.value + 6*LEN_DATA.LEN_FLOAT.value
     # Image
     data = bytearray()  # Réinitialiser les données pour une nouvelle image
     # print([format(b, '08b') for b in packet_data[offset:]])

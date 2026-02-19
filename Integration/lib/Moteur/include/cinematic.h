@@ -1,4 +1,4 @@
-
+#include <math.h>
 
 #define L 0.29 // Distance entre les deux roues, en m
 #define R 0.033 // Rayon d'une roue, en m
@@ -16,8 +16,8 @@ int* get_vitesse_mot(float Vmoy, float angle, float T) {
         vitesse[1] = (Vmoy/R - (angle*L)/(2*R*T))*(60.0/(2*PI));  // en rpm
     }
     else {
-        vitesse[0] = angle*L/(2*T*R) + sqrt(pow(angle*H/T, 2) + pow(Vmoy, 2))/R; // en rad/s
-        vitesse[1] = -angle*L/(2*T*R) + sqrt(pow(angle*H/T, 2) + pow(Vmoy, 2))/R;  // en rad/s
+        vitesse[0] = -angle*L/(2*T*R) + sqrt(pow(angle*H/T, 2) + pow(Vmoy, 2))/R; // en rad/s
+        vitesse[1] = angle*L/(2*T*R) + sqrt(pow(angle*H/T, 2) + pow(Vmoy, 2))/R;  // en rad/s
         vitesse[0] = -vitesse[0]*(60.0/(2*PI)); // conversion en rpm + inversion
         vitesse[1] = -vitesse[1]*(60.0/(2*PI)); // conversion en rpm + inversion
     }
