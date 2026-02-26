@@ -12,7 +12,7 @@
 #include "hardware/dma.h"
 #include "ov7670_capture.pio.h"
 
-/* // BRANCHEMENTS :
+/* // BRANCHEMENTS : 1er PCB
 // ! GP pins
 #define CAMERA_XCLK_PIN 21
 #define CAMERA_PCLK_PIN 10
@@ -31,7 +31,7 @@
 #define CAMERA_D6 11
 #define CAMERA_D7 20 */
 
-// BRANCHEMENTS : 
+/* // BRANCHEMENTS : camera test DMA
 // ! GP pins
 #define CAMERA_HREF_PIN 9
 #define CAMERA_PCLK_PIN 10
@@ -46,6 +46,25 @@
 #define CAMERA_D5 19
 #define CAMERA_D6 20
 #define CAMERA_D7 21
+#define CAMERA_VSYNC_PIN 22
+#define CAMERA_SDA      26
+#define CAMERA_SCL      27 */
+
+// BRANCHEMENTS : 2e PCB
+// ! GP pins
+#define CAMERA_HREF_PIN 9
+#define CAMERA_XCLK_PIN 10
+#define CAMERA_D0 11
+#define CAMERA_D1 12
+#define CAMERA_D2 13
+#define CAMERA_D3 14
+#define CAMERA_D4 15
+#define CAMERA_D5 16
+#define CAMERA_D6 17
+#define CAMERA_D7 18
+#define CAMERA_PWDN_PIN 19
+#define CAMERA_RES_PIN 20
+#define CAMERA_PCLK_PIN 21
 #define CAMERA_VSYNC_PIN 22
 #define CAMERA_SDA      26
 #define CAMERA_SCL      27

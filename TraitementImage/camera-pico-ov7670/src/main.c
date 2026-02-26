@@ -17,7 +17,7 @@
 int main()
 {
     stdio_init_all();
-    sleep_ms(2000);
+    sleep_ms(10000);
 
     struct camera camera;
 
@@ -36,7 +36,7 @@ int main()
     printf("Camera to be initialised\n");
     if (camera_init(&camera, &platform, size)) return 1;
     printf("Camera initialised\n");
-    camera_pio_init();
+    // camera_pio_init();
 
     /* Creation Buffers Camera */
     uint8_t *frame_buffer, *outbuf, *bw_outbuf;
