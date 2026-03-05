@@ -36,7 +36,7 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(camera_test
-    src/main.c
+    main.c
     src/ov7670.c
     src/camera.c
     src/init_camera.c

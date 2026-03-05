@@ -1,6 +1,6 @@
-#include "../include/traitement.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "../include/traitement.h"
 
 // Buffer for moving average of angle
 static double angle_buffer[MOVING_AVG_SIZE] = {0};

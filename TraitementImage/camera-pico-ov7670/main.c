@@ -5,19 +5,19 @@
 #include "hardware/i2c.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
-#include "../include/camera.h"
-#include "../include/init_camera.h"
-#include "../include/traitement.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "ov7670_capture.pio.h"
-// #include "src/lwipopts.h"
+
+#include "../include/camera.h"
+#include "../include/init_camera.h"
+#include "../include/traitement.h"
 
 
 int main()
 {
     stdio_init_all();
-    sleep_ms(10000);
+    sleep_ms(10000); // Utile pour le debug uniquement
 
     struct camera camera;
 
@@ -27,16 +27,15 @@ int main()
     /* Choix Format */
     uint16_t width_temp, height_temp;
     OV7670_size size;
-    // TODO enum pour la division
     int division = 0; // 0 : DIV 8, 1 : DIV 4, ...
     int format_out = choix_format(division, &width_temp, &height_temp, &size);
     const uint16_t width = width_temp;
     const uint16_t height = height_temp;
 
     printf("Camera to be initialised\n");
-    if (camera_init(&camera, &platform, size)) return 1;
+    if (camera_init(&camera, &platform, size)) return 1; // Point de blocage potentiel
     printf("Camera initialised\n");
-    // camera_pio_init();
+    // camera_pio_init(); // Initialisation des machines à état (nécessaire pour une lecture DMA)
 
     /* Creation Buffers Camera */
     uint8_t *frame_buffer, *outbuf, *bw_outbuf;
@@ -50,10 +49,6 @@ int main()
 
         // Header P5 : format et dimensions de l'image
         printf("P5\n%d %d\n255\n", width, height);
-
-        // Extraire Y seulement --> fait pendant la lecture !
-        // for (int px = 0; px < width * height; px++)
-        //     outbuf[px] = frame_buffer[px * 2];
 
         // Traitement
         int seuillage_out = seuillage(outbuf, bw_outbuf,

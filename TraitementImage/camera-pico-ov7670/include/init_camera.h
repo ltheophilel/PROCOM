@@ -1,3 +1,7 @@
+/**
+ * Fichier contenant les fonctions utiles à l'initialisation de la caméra OV7670
+ */
+
 #ifndef __INIT_CAMERA_H__
 #define __INIT_CAMERA_H__
 #include <stdlib.h>

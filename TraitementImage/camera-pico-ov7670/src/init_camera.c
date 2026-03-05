@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "../include/init_camera.h"
 #include "hardware/i2c.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
-#include "../include/camera.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "ov7670_capture.pio.h"
+
+#include "../include/init_camera.h"
+#include "../include/camera.h"
 
 /* Parametres PIO */
 PIO camera_pio = pio0;
@@ -34,7 +35,7 @@ struct camera_platform_config create_camera_platform_config()
     struct camera_platform_config platform = {
         .i2c_write_blocking = __i2c_write_blocking,
         .i2c_read_blocking = __i2c_read_blocking,
-        .i2c_handle = i2c1,
+        .i2c_handle = i2c0,
         .xclk_pin = CAMERA_XCLK_PIN,
         .xclk_divider = 15,  // 5 MHz, stable
         .vsync_pin = CAMERA_VSYNC_PIN,
