@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8">
     <title>Interface Microcontrôleur</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
+    <!-- <link rel="stylesheet" href="style.css"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <!-- <h1>PROCOM Base Roulante</h1> -->
@@ -42,8 +42,8 @@
             <canvas id="camCanvasR" width="140" height="190"></canvas>
         </div>
     </div>
-    <script src="script.js"></script>
-    <!-- <script src="{{ url_for('static', filename='script.js') }}"></script> -->
+    <!-- <script src="script.js"></script> -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <!-- <script>
         // Charger le fichier JSON
         fetch('../config.json')
