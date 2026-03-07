@@ -9,6 +9,24 @@
 #include "hardware/clocks.h"
 #include "../include/camera.h"
 #include "../include/ov7670.h"
+#include "../include/init_camera.h"
+
+static void i2c_scan(struct camera_platform_config *platform) {
+	printf("Scanning I2C bus for devices...\n");
+	for (uint8_t addr = 1; addr < 127; addr++) {
+		uint8_t reg = OV7670_REG_PID;
+		int ret = platform->i2c_write_blocking(platform->i2c_handle, addr, &reg, 1);
+		if (ret == 1) {
+			uint8_t val;
+			ret = platform->i2c_read_blocking(platform->i2c_handle, addr, &val, 1);
+			if (ret == 1) {
+				printf("Found device at address 0x%02X, PID=0x%02X\n", addr, val);
+			} else {
+				printf("Found device at address 0x%02X but failed to read PID\n", addr);
+			}
+		}
+	}
+}
 
 
 static bool camera_detect(struct camera_platform_config *platform)
@@ -16,17 +34,19 @@ static bool camera_detect(struct camera_platform_config *platform)
 	// Vérifie la présence de la caméra OV7670 en lisant le registre PID (Product ID)
 	const uint8_t reg = OV7670_REG_PID;
 	uint8_t val = 0;
-
+	i2c_scan(platform);
 	int tries = 5;
 	while (tries--) {
 		int ret = platform->i2c_write_blocking(platform->i2c_handle, OV7670_ADDR, &reg, 1);
 		if (ret != 1) {
+			printf("I2C write failed, ret=%d\n", ret);
 			sleep_ms(100);
 			continue;
 		}
 
 		ret = platform->i2c_read_blocking(platform->i2c_handle, OV7670_ADDR, &val, 1);
 		if (ret != 1) {
+			printf("I2C read failed, ret=%d\n", ret);
 			sleep_ms(100);
 			continue;
 		}
@@ -56,8 +76,8 @@ int camera_init(struct camera *camera, struct camera_platform_config *params, OV
 	printf("Camera XCLK initialised\n");
 	camera->driver_host = (OV7670_host){
 		.pins = &(OV7670_pins){
-			.enable = -1,
-			.reset = -1,
+			.enable = -1, // CAMERA_PWDN_PIN, // -1,
+			.reset = -1 // CAMERA_RES_PIN // -1
 		},
 		.platform = params,
 	};

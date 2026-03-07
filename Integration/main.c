@@ -165,6 +165,7 @@ void core1_entry() {
     renderIPString(IP4ADDR);
     if (connect_success == ERR_OK) {
         while (true) {
+            printf("IP Address: %s\n", IP4ADDR);
             cpt_envoi++;
             t_us_core_1_beginning_loop = time_us_64();
             
@@ -250,7 +251,7 @@ void core0_entry()
     // sleep_ms(5000); // Attendre que tout soit stable
     /* INITIALISATION CAMERA */
     struct camera camera;
-    init_camera();
+    init_camera(); // initialisation des GPIO pour la caméra
     struct camera_platform_config platform = create_camera_platform_config();
 
     /* Choix Format */

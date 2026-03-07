@@ -9,30 +9,11 @@
 #include "pico/stdlib.h"
 #include "camera.h"
 
-//  // BRANCHE*
+#define OLD_PCB false
 
-//  // BRANCHEMENTS :
-// // ! GP pins
-// #define CAMERA_XCLK_PIN 21 //
-// #define CAMERA_PCLK_PIN 10 // 
-// #define CAMERA_HREF_PIN 9
-// #define CAMERA_RES_PIN 20
-// #define CAMERA_PWDN_PIN 19 // 15 ?
-// #define CAMERA_VSYNC_PIN 22
-// #define CAMERA_SDA      26
-// #define CAMERA_SCL      27
-// #define CAMERA_D0 11
-// #define CAMERA_D1 12
-// #define CAMERA_D2 13
-// #define CAMERA_D3 14
-// #define CAMERA_D4 15
-// #define CAMERA_D5 16
-// #define CAMERA_D6 17
-// #define CAMERA_D7 18 
-
-
-/// BRANCHEMENTS :
+ // BRANCHEMENTS :
 // ! GP pins
+#if OLD_PCB
 #define CAMERA_XCLK_PIN 21
 #define CAMERA_PCLK_PIN 10
 #define CAMERA_HREF_PIN 9
@@ -49,6 +30,26 @@
 #define CAMERA_D5 19
 #define CAMERA_D6 11
 #define CAMERA_D7 20 
+
+#else
+
+#define CAMERA_XCLK_PIN 21 //
+#define CAMERA_PCLK_PIN 10 // 
+#define CAMERA_HREF_PIN 9
+#define CAMERA_RES_PIN 20
+#define CAMERA_PWDN_PIN 19 // 15 ?
+#define CAMERA_VSYNC_PIN 22
+#define CAMERA_SDA      26
+#define CAMERA_SCL      27
+#define CAMERA_D0 11
+#define CAMERA_D1 12
+#define CAMERA_D2 13
+#define CAMERA_D3 14
+#define CAMERA_D4 15
+#define CAMERA_D5 16
+#define CAMERA_D6 17
+#define CAMERA_D7 18 
+#endif
 
 
 // // BRANCHEMENTS : NE PAS UTILISER (TESTS)
@@ -98,4 +99,4 @@ int choix_format(int division,
 int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **bw_outbuf,
                             uint16_t width, uint16_t height);
 
-#endif
+#endif /* __INIT_CAMERA_H__ */

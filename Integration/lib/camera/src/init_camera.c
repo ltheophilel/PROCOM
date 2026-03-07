@@ -44,12 +44,15 @@ struct camera_platform_config create_camera_platform_config()
 
 int init_camera()
 {
+    gpio_put(15, true);
     // init I2C:
-    i2c_init(i2c1, 100000);
-    gpio_set_function(CAMERA_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(CAMERA_SCL, GPIO_FUNC_I2C);
+    gpio_init(CAMERA_SDA);
+    gpio_init(CAMERA_SCL);
     gpio_pull_up(CAMERA_SDA);
     gpio_pull_up(CAMERA_SCL);
+    gpio_set_function(CAMERA_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(CAMERA_SCL, GPIO_FUNC_I2C);
+    i2c_init(i2c1, 400*1000);
     printf("I2C initialised\n");
 
     // init RES:
@@ -76,6 +79,7 @@ int init_camera()
     // init DATA pins
     int datapins[8] = {CAMERA_D0, CAMERA_D1, CAMERA_D2, CAMERA_D3,
         CAMERA_D4, CAMERA_D5, CAMERA_D6, CAMERA_D7};
+    gpio_put(15, false);
     for (int i=0; i<8; i++) {
         gpio_init(datapins[i]);
         gpio_set_dir(datapins[i], GPIO_IN);
