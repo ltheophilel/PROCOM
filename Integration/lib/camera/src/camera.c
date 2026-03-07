@@ -13,6 +13,7 @@
 
 static bool camera_detect(struct camera_platform_config *platform)
 {
+	// Vérifie la présence de la caméra OV7670 en lisant le registre PID (Product ID)
 	const uint8_t reg = OV7670_REG_PID;
 	uint8_t val = 0;
 
@@ -45,6 +46,7 @@ static bool camera_detect(struct camera_platform_config *platform)
 
 int camera_init(struct camera *camera, struct camera_platform_config *params, OV7670_size size)
 {
+	// Initialise la caméra OV7670 et vérifie sa présence
 	OV7670_status status;
 
 	*camera = (struct camera){ 0 };
@@ -64,10 +66,10 @@ int camera_init(struct camera *camera, struct camera_platform_config *params, OV
 	sleep_ms(300);
 
 	// Try and check that the camera is present
-	// while (!camera_detect(params)) {
-	// 	printf("Camera not detected, retrying...\n");
-	// 	sleep_ms(1000);
-	// }
+	while (!camera_detect(params)) {
+		printf("Camera not detected, retrying...\n");
+		sleep_ms(1000);
+	}
 	// if (!camera_detect(params)) {
 	// 	printf("Camera not detected\n");
 	// 	return -1;

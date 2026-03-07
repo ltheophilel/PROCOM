@@ -23,6 +23,7 @@ int __i2c_read_blocking(void *i2c_handle, uint8_t addr,
 
 struct camera_platform_config create_camera_platform_config()
 {
+    // Crée et retourne une configuration de plateforme pour la caméra OV7670, incluant les fonctions d'I2C et les broches utilisées
     struct camera_platform_config platform = {
         .i2c_write_blocking = __i2c_write_blocking,
         .i2c_read_blocking = __i2c_read_blocking,
@@ -87,6 +88,7 @@ int choix_format(int division,
     uint16_t* width, uint16_t* height,
     OV7670_size* size)
 {
+    // Choisit la configuration de format de la caméra OV7670 en fonction du niveau de division souhaité, et remplit les paramètres de largeur, hauteur et taille correspondants
     const uint16_t tableau_width[] = {CAMERA_WIDTH_DIV8,
         CAMERA_WIDTH_DIV4, CAMERA_WIDTH_DIV2, CAMERA_WIDTH_DIV1};
     const uint16_t tableau_height[] = {CAMERA_HEIGHT_DIV8,
@@ -107,6 +109,7 @@ int choix_format(int division,
 int creation_buffers_camera(uint8_t **frame_buffer, uint8_t **outbuf, uint8_t **bw_outbuf,
                             uint16_t width, uint16_t height)
 {
+    // Alloue les buffers nécessaires pour la capture d'image brute, l'image de sortie et l'image binarisée, en fonction de la largeur et hauteur spécifiées
     *frame_buffer = malloc(width * height);
     if (!frame_buffer) return 1;
 

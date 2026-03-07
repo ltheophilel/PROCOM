@@ -3,6 +3,7 @@
 static wifi_network_t network = {NULL, NULL};
 
 err_t connect_to_wifi(const char *ssid, const char *password, const int timeout_ms, const bool init_wifi) {
+    // Fonction pour se connecter à un réseau Wi-Fi donné
     if (init_wifi) {
         if (cyw43_arch_init()) {
             printf("failed to initialise\n");

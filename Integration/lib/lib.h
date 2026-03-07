@@ -1,4 +1,4 @@
-
+// Ce fichier inclut tous les headers nécessaires pour le projet, afin de simplifier les inclusions dans les fichiers sources.
 #include "led/include/led.h"
 
 #include "oled/include/digitRenderer.h"

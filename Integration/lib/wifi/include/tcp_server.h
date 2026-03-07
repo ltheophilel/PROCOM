@@ -23,19 +23,7 @@
 #define LEN_GENERAL_MSG 30
 #define LEN_FLOAT_MSG 8
 
-extern char *IP4ADDR;
-
-// typedef struct TCP_SERVER_T_ {
-//     struct tcp_pcb *server_pcb;
-//     struct tcp_pcb *client_pcb;
-//     bool complete;
-//     uint8_t buffer_sent[BUF_SIZE];
-//     uint8_t buffer_recv[BUF_SIZE];
-//     int sent_len;
-//     int recv_len;
-//     int run_count;
-// } TCP_SERVER_T;
-
+extern char *IP4ADDR; // Stocke l'adresse IP du serveur pour l'afficher sur l'OLED
 
 typedef struct {
     struct tcp_pcb *server_pcb;

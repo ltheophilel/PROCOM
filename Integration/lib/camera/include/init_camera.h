@@ -51,7 +51,7 @@
 #define CAMERA_D7 20 
 
 
-// // BRANCHEMENTS : ???? NE PAS UTILISER
+// // BRANCHEMENTS : NE PAS UTILISER (TESTS)
 // // ! GP pins
 // #define CAMERA_HREF_PIN 9
 // #define CAMERA_PCLK_PIN 10

@@ -14,6 +14,7 @@ cmdInput.addEventListener("keypress", (e) => {
 
 // --- Fonctions ---
 async function send_command(command) {
+    // Envoi de la commande au serveur
     if(!command) return;
     try {
         await fetch('/send', {
@@ -26,6 +27,7 @@ async function send_command(command) {
 }
 
 async function send() {
+    // On récupère la commande et on l'envoie, en mettant à jour les valeurs affichées si besoin
     const command = cmdInput.value;
     if (/^V\d+$/.test(command)) update_values("V", command);
     else if (/^P\d+$/.test(command)) {
@@ -53,6 +55,7 @@ async function send() {
     send_command(command)
 }
 
+// Fonction pour le bouton GO/STOP
 async function GO_STOP() {
     try {
         if (!go) {
@@ -69,6 +72,7 @@ async function GO_STOP() {
     } catch (e) { console.error("Erreur GO_STOP:", e); }
 }
 
+// Fonction pour mettre à jour les valeurs affichées
 async function update_values(which, value) {
     try {
         document.getElementById(which).textContent = value;
@@ -76,6 +80,7 @@ async function update_values(which, value) {
     
 }
 
+// Fonction de lecture en boucle
 async function readLoop() {
     try {
         const res = await fetch("/read");
@@ -84,6 +89,7 @@ async function readLoop() {
 
         if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {
             json.data.forEach(line => {
+                // Traitement des lignes de données, en filtrant les commandes d'image
                 if (line.startsWith("IMG_DATA:")) {
                     const base64Data = line.split("IMG_DATA:")[1];
                     updateCanvasFromBase64(base64Data, false);
@@ -118,6 +124,7 @@ async function readLoop() {
     }
 }
 
+// Fonction pour mettre à jour le canvas à partir d'une image en base64
 function updateCanvasFromBase64(base64, R = false) {
     const img = new Image();
     img.onload = function() {

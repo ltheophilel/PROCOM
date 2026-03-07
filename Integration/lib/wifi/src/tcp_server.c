@@ -8,6 +8,7 @@ static size_t sent = 0;
 static size_t chunk;
 
 static err_t on_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
+    // Fonction de rappel pour la réception de données TCP
     TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
 
     if (!p) {
@@ -33,6 +34,7 @@ static err_t on_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t 
 }
 
 static err_t on_tcp_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
+    // Fonction de rappel pour l'acceptation d'une nouvelle connexion TCP
     TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
 
     printf("Client connected\n");
@@ -45,6 +47,7 @@ static err_t on_tcp_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
 }
 
 TCP_SERVER_T* tcp_server_start(void) {
+    // Fonction pour démarrer le serveur TCP
     TCP_SERVER_T *state = calloc(1, sizeof(TCP_SERVER_T));
 
     state->server_pcb = tcp_new_ip_type(IPADDR_TYPE_ANY);
@@ -59,6 +62,7 @@ TCP_SERVER_T* tcp_server_start(void) {
 }
 
 size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buf, size_t maxlen) {
+    // Fonction pour lire les données reçues du client TCP
     size_t n = state->recv_len < maxlen ? state->recv_len : maxlen;
     memcpy(buf, state->buffer_recv, n);
     memmove(state->buffer_recv, state->buffer_recv + n, state->recv_len - n);
@@ -69,6 +73,7 @@ size_t tcp_server_receive(TCP_SERVER_T *state, uint8_t *buf, size_t maxlen) {
 
 
 err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
+    // Fonction pour envoyer un message au client TCP avec un type de paquet
     if (!state->client_pcb) return ERR_CLSD;
 
     // Construire l'en-tête
@@ -98,6 +103,7 @@ err_t tcp_server_send(TCP_SERVER_T *state, const char *msg, PACKET_TYPE type) {
 #include <string.h> // Pour memcpy
 
 err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
+    // Fonction pour envoyer une grande image en plusieurs paquets TCP (non utilisé en temps normal)
     sent = 0;
 
     while (sent < len) {
@@ -149,12 +155,14 @@ err_t tcp_send_large_img(TCP_SERVER_T *state, const char *data, size_t len) {
 
 
 uint8_t* add_data_to_send(uint8_t *ptr, const char *data, size_t len) {
+    // Fonction pour ajouter des données au buffer d'envoi
     memcpy(ptr, data, len);
     return ptr + len;
 }
 
 
 uint8_t* add_float_to_send(uint8_t *ptr, double value) {
+    // Fonction pour ajouter un nombre à virgule flottante au buffer d'envoi
     char str[LEN_FLOAT_MSG];
     snprintf(str, sizeof(str), "%.6f", value);
     return add_data_to_send(ptr, str, LEN_FLOAT_MSG);
@@ -176,6 +184,8 @@ err_t tcp_server_send_all_in_one(TCP_SERVER_T *state,
                                 const double angle_aplati,
                                 const uint8_t *coded_image, 
                                 size_t len_img) {
+    // Fonction pour envoyer un paquet "tout-en-un" contenant 
+    // les informations générales, les vitesses des moteurs, les paramètres de la ligne détectée et l'image codée
     if (!state->client_pcb) return ERR_CLSD;
     cyw43_arch_lwip_begin();
     if (tcp_sndbuf(state->client_pcb) < 1400) {
@@ -208,13 +218,7 @@ err_t tcp_server_send_all_in_one(TCP_SERVER_T *state,
     err_t err = tcp_write(state->client_pcb, buffer, chunk + 3, TCP_WRITE_FLAG_COPY);
     if (err == ERR_OK) {
         tcp_output(state->client_pcb);
-        // while (state->client_pcb->unsent != NULL) {
-        //     sleep_ms(20); // Attendre 10ms entre chaque envoi
-        // }
-
     } 
     cyw43_arch_lwip_end();
     return err;
-
-    // return tcp_write(state->client_pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
 }

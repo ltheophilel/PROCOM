@@ -17,6 +17,7 @@ typedef struct wifi_network_t {
     const char *password;
 } wifi_network_t;
 
+// Liste des réseaux Wi-Fi connus (SSID et mot de passe) pour la connexion automatique
 static wifi_network_t known_networks[] = {
     {WIFI_SSID_colloc, WIFI_PASSWORD_colloc},
     {WIFI_SSID_iphone, WIFI_PASSWORD_iphone},
