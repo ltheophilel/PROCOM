@@ -238,7 +238,7 @@ void core0_entry()
     // Initialisation moteurs
     printf("Initialisation des moteurs\n");
     init_all_motors_and_encoders();
-
+    // sleep_ms(5000); // Attendre que tout soit stable
     /* INITIALISATION CAMERA */
     struct camera camera;
     init_camera();
@@ -255,8 +255,9 @@ void core0_entry()
         printf("Erreur d'initialisation de la caméra\n"); 
         pico_blink_led(5, 500);
         // return 1;
-    } 
-    printf("Camera initialised\n");
+    } else {
+        printf("Camera initialised\n");
+    }
 
     /* Creation Buffers Camera */
     creation_buffers_camera(&frame_buffer, get_outbuf_from_core(0),
@@ -354,6 +355,7 @@ int main() {
     coded_image = (uint8_t*)malloc(1024*sizeof(uint8_t)); // Taille max possible
     mutex_init(&multicore_lock);
     multicore_launch_core1(core1_entry);
+    // sleep_ms(5000); // Attendre que le core 1 soit prêt
     core0_entry();
     return 0;
 }

@@ -40,6 +40,9 @@ static bool camera_detect(struct camera_platform_config *platform)
 	return val == 0x76;
 }
 
+
+
+
 int camera_init(struct camera *camera, struct camera_platform_config *params, OV7670_size size)
 {
 	OV7670_status status;
@@ -48,7 +51,7 @@ int camera_init(struct camera *camera, struct camera_platform_config *params, OV
 	camera->platform = params;
 
 	clock_gpio_init(params->xclk_pin, CLOCKS_CLK_GPOUT0_CTRL_AUXSRC_VALUE_CLK_SYS, params->xclk_divider);
-
+	printf("Camera XCLK initialised\n");
 	camera->driver_host = (OV7670_host){
 		.pins = &(OV7670_pins){
 			.enable = -1,
@@ -61,13 +64,19 @@ int camera_init(struct camera *camera, struct camera_platform_config *params, OV
 	sleep_ms(300);
 
 	// Try and check that the camera is present
-	if (!camera_detect(params)) {
-		return -1;
-	}
+	// while (!camera_detect(params)) {
+	// 	printf("Camera not detected, retrying...\n");
+	// 	sleep_ms(1000);
+	// }
+	// if (!camera_detect(params)) {
+	// 	printf("Camera not detected\n");
+	// 	return -1;
+	// }
 
 	// Note: Frame rate is ignored
 	status = OV7670_begin(&camera->driver_host, OV7670_COLOR_YUV, size, 0.0);
 	if (status != OV7670_STATUS_OK) {
+		printf("OV7670_begin failed with status %d\n", status);
 		return -1;
 	}
 	return 0;

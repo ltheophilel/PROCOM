@@ -49,16 +49,19 @@ int init_camera()
     gpio_set_function(CAMERA_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(CAMERA_SDA);
     gpio_pull_up(CAMERA_SCL);
+    printf("I2C initialised\n");
 
     // init RES:
     gpio_init(CAMERA_RES_PIN);
     gpio_set_dir(CAMERA_RES_PIN, GPIO_OUT);
     gpio_put(CAMERA_RES_PIN, true);
+    printf("Camera reset pin initialised\n");
 
     // init PWDN:
     gpio_init(CAMERA_PWDN_PIN);
     gpio_set_dir(CAMERA_PWDN_PIN, GPIO_OUT);
     gpio_put(CAMERA_PWDN_PIN, false);
+    printf("Camera power-down pin initialised\n");
 
     // init sync pins
     gpio_init(CAMERA_VSYNC_PIN);
@@ -67,6 +70,7 @@ int init_camera()
     gpio_set_dir(CAMERA_HREF_PIN, GPIO_IN);
     gpio_init(CAMERA_PCLK_PIN);
     gpio_set_dir(CAMERA_PCLK_PIN, GPIO_IN);
+    printf("Camera sync pins initialised\n");
 
     // init DATA pins
     int datapins[8] = {CAMERA_D0, CAMERA_D1, CAMERA_D2, CAMERA_D3,
@@ -75,6 +79,7 @@ int init_camera()
         gpio_init(datapins[i]);
         gpio_set_dir(datapins[i], GPIO_IN);
     }
+    printf("Camera data pins initialised\n");
     return 0;
 }
 
