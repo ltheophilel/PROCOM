@@ -6,44 +6,48 @@
 #include "pico/sync.h"
 // #include <jansson.h>
 
+// Définition des constantes pour la vitesse maximale et la fréquence
 #define Vmax MAX_RPM*R*(2*PI)/60.0f // conversion rpm -> m/s. Environ 1 m/s
 #define F 12.5 // Hz
 
-
+// Mode d'envoi optimisé pour réduire la bande passante
 #define OPTIMIZED_SEND true
 
+// Variables globales pour les paramètres du robot
 short pourcentage_Vmax = 20; // en pourcentage de Vmax (environ vitesse en cm/s)
 short pourcentage_V_marche_arriere = 60; // en pourcentage de V, vitesse utilisée lors de la recherche de ligne
-bool pause = true;
+bool pause = true; // État de pause du robot
 float T = 0.3f; // 0.50f; // temps caractéristique pour faire un virage (s). Virage éffectué en 3T environ. Si mode_P, T est calculé dynamiquement en fonction de P et de la vitesse pour que le gain soit constant (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f))).
 float P = 15.0f; // gain proportionnel pour la correction d'angle (T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes)
 bool mode_P = false; // true : mode proportionnel, false : mode fixe
-char general_msg[LEN_GENERAL_MSG];
+char general_msg[LEN_GENERAL_MSG]; // Message général pour la communication
 short SEUIL = 128; // seuil de binarisation pour le traitement d'image
-int PROFONDEUR = 30;
+int PROFONDEUR = 30; // Profondeur pour le calcul de l'angle
 
+// Variables statiques pour les vitesses des moteurs et les paramètres de ligne
 static char  str_v_mot[LEN_GENERAL_MSG];
 static uint64_t t_us_core_0_beginning_loop;
 static uint64_t t_us_core_1_beginning_loop;
-signed int v_mot_droit;
-signed int v_mot_gauche;
-double angle;
-double p;
-double m;
-double p_aplati;
+signed int v_mot_droit; // Vitesse du moteur droit en RPM
+signed int v_mot_gauche; // Vitesse du moteur gauche en RPM
+double angle; // Angle détecté de la ligne
+double p; // Ordonnée à l'origine de la droite détectée
+double m; // Pente de la droite détectée
+double p_aplati; // Paramètres après aplatissement homographique
 double m_aplati;
 double angle_aplati;
-double angle_utilise;
+double angle_utilise; // Angle effectivement utilisé pour le contrôle
 uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
 
+// Buffers pour les images et synchronisation multicœur
 static uint8_t* outbuf1;
 static uint8_t* outbuf2;
-static bool toggle_buf = false;
-static uint8_t *frame_buffer, *bw_outbuf;
-uint8_t *coded_image;
-uint16_t len_coded_image;
+static bool toggle_buf = false; // Alternance des buffers entre cœurs
+static uint8_t *frame_buffer, *bw_outbuf; // Buffers pour l'image brute et binarisée
+uint8_t *coded_image; // Image codée pour transmission
+uint16_t len_coded_image; // Longueur de l'image codée
 
-static mutex_t multicore_lock;
+static mutex_t multicore_lock; // Mutex pour synchronisation
 
 // échange les buffers d'image entre les deux cœurs   
 static uint8_t** get_outbuf_from_core(bool core) {
@@ -72,7 +76,7 @@ static void core_ready_to_swap(bool core, bool ready) {
 }
 
 void interpretCommand(TCP_SERVER_T *state, const char* command) {
-    // Implémentez ici l'interprétation des commandes reçues
+    // Fonction pour interpréter les commandes reçues via TCP et ajuster les paramètres du robot
     command = trim_whitespace_divers((char *)command);
     printf("Interpreted Command: '%s'\n", command);
     if (strcmp(command, "LED ON") == 0)
@@ -107,29 +111,29 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     }
     else if (command[0] == 'T' && estNombreEntier(command + 1))
     {
-        T = atoi(command + 1) / 1000.0f; // en secondes
-        mode_P = false;
+        T = atoi(command + 1) / 1000.0f; // Conversion en secondes
+        mode_P = false; // Désactiver le mode proportionnel
         snprintf(general_msg, LEN_GENERAL_MSG, "T set to %.3f s", T);
     }
     else if (command[0] == 'P' && estNombreEntier(command + 1))
     {
         P = atoi(command + 1) / 1000.0f; 
-        mode_P = true;
+        mode_P = true; // Activer le mode proportionnel
         snprintf(general_msg, LEN_GENERAL_MSG, "P set to %.3f", P);
     }
     else if (command[0] == 'S' && estNombreEntier(command + 1))
     {
-        SEUIL = (short)atoi(command + 1); 
+        SEUIL = (short)atoi(command + 1); // Seuil de binarisation
         snprintf(general_msg, LEN_GENERAL_MSG, "SEUIL set to %d", SEUIL);
     }
     else if (command[0] == 'D' && estNombreEntier(command + 1))
     {
-        PROFONDEUR = (short)atoi(command + 1); 
+        PROFONDEUR = (short)atoi(command + 1); // Profondeur pour calcul d'angle
         snprintf(general_msg, LEN_GENERAL_MSG, "PROFONDEUR set to %d", PROFONDEUR);
     }
     else if (command[0] == 'R' && estNombreEntier(command + 1))
     {
-        pourcentage_V_marche_arriere = (short)atoi(command + 1); 
+        pourcentage_V_marche_arriere = (short)atoi(command + 1); // Pourcentage de la vitesse maximale pour la marche arrière
         snprintf(general_msg, LEN_GENERAL_MSG, "vitesse_marche_arriere set to %d%%", pourcentage_V_marche_arriere);
     }
     else
@@ -142,6 +146,7 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
 static int cpt_envoi = 0;
 
 void core1_entry() {
+    // Fonction exécutée sur le cœur 1 : gestion du Wi-Fi, TCP et OLED
     // Initialisation Wi-Fi
     err_t connect_success = wifi_auto_connect();
     if (connect_success != ERR_OK)
@@ -156,7 +161,7 @@ void core1_entry() {
 
     // Initialisation OLED
     initOLED();
-    renderSymbol(RPI,1,56); // Render the Rpi Symbol
+    renderSymbol(RPI,1,56); // Afficher le symbole RPi
     renderIPString(IP4ADDR);
     if (connect_success == ERR_OK) {
         while (true) {
@@ -166,7 +171,7 @@ void core1_entry() {
             int received = tcp_server_receive(state, rx_buffer, BUF_SIZE);
 
             if (received > 0) {
-                // Si message reçu
+                // Si message reçu, l'interpréter
                 rx_buffer[received] = '\0'; // Ajouter un '\0' pour créer une chaîne de caractères
                 printf("Reçu du client : %s\n", rx_buffer);
                 interpretCommand(state, (const char *)rx_buffer);
@@ -174,6 +179,7 @@ void core1_entry() {
             
             err_t err;
             if (!OPTIMIZED_SEND) {
+                // Mode d'envoi non optimisé : envoyer séparément les données
                 sleep_ms(10);
                 snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
                 tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
@@ -184,6 +190,7 @@ void core1_entry() {
 
                 err = tcp_send_large_img(state, *get_outbuf_from_core(1), MAX_WIDTH*MAX_HEIGHT);
             } else {
+                // Mode optimisé : coder l'image et envoyer tout en un paquet
                 printf("Preparing to send all-in-one packet...\n");
                 sleep_ms(20);
                 // snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
@@ -219,6 +226,7 @@ void core1_entry() {
             if (err != ERR_OK) {
                 printf("Erreur d'envoi de l'image : %d\n", err);
             }
+            // Échange des buffers pour synchronisation avec le cœur 0
             uint8_t** pointer_to_outbuf = get_outbuf_from_core(1);
             core_ready_to_swap(1, true);
             // printf("Core 1: Waiting for swap...\n");
@@ -235,6 +243,7 @@ void core1_entry() {
 
 void core0_entry()
 {
+    // Fonction exécutée sur le cœur 0 : gestion de la caméra, traitement d'image et contrôle des moteurs
     // Initialisation moteurs
     printf("Initialisation des moteurs\n");
     init_all_motors_and_encoders();
@@ -269,62 +278,65 @@ void core0_entry()
     
     while (true) {
         #if PICO_CYW43_ARCH_POLL
-            cyw43_arch_poll();
+            cyw43_arch_poll(); // Gestion des événements Wi-Fi si nécessaire
         #endif
         
         t_us_core_0_beginning_loop = time_us_64();
-        core_ready_to_swap(0, false);
-        camera_capture_blocking(&camera, frame_buffer, width, height);
+        core_ready_to_swap(0, false); // Indiquer que le cœur 0 n'est pas prêt pour l'échange
+        camera_capture_blocking(&camera, frame_buffer, width, height); // Capture d'image bloquante
         // printf("Capture time (us): %llu\n", time_us_64() - t_us_core_0_beginning_loop);
 
-        // Extraire Y seulement
+        // Extraire Y seulement (pour format YUV)
         // for (int px = 0; px < width * height; px++)
         //     (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
-        if (!OPTIMIZED_SEND) *get_outbuf_from_core(0) = frame_buffer;
+        if (!OPTIMIZED_SEND) *get_outbuf_from_core(0) = frame_buffer; // Utiliser l'image brute si non optimisé
         
-        // Traitement
+        // Traitement d'image : binarisation
         int seuillage_out = seuillage(frame_buffer, bw_outbuf,
                                       width, height, SEUIL);
-        if (OPTIMIZED_SEND) *get_outbuf_from_core(0) = bw_outbuf;
-        core_ready_to_swap(0, true);
+        if (OPTIMIZED_SEND) *get_outbuf_from_core(0) = bw_outbuf; // Utiliser l'image binarisée pour envoi optimisé
+        core_ready_to_swap(0, true); // Prêt pour l'échange de buffers
 
         if (ligne_detectee(bw_outbuf, width, height) == 0 && !pause)
         {
-            // Ligne non détectée
-            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle_utilise, T); // en rpm
+            // Ligne non détectée : rechercher la ligne en marche arrière
+            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle_utilise, T); // Calcul des vitesses en RPM
             chercher_ligne(vitesses[0], vitesses[1], angle_utilise, pourcentage_V_marche_arriere);
         }
         else
         {            
-            double* apm = trouver_angle(bw_outbuf, width, height, PROFONDEUR);
+            // Ligne détectée : calculer l'angle et ajuster les vitesses
+            double* apm = trouver_angle(bw_outbuf, width, height, PROFONDEUR); // Retourne angle, p, m
             angle = apm[0];
             p = apm[1];
             m = apm[2];
             free(apm);
-            double* apm_aplati = aplatir(angle, p, m, PROFONDEUR);
+            double* apm_aplati = aplatir(angle, p, m, PROFONDEUR); // Appliquer transformation homographique
             angle_aplati = apm_aplati[0];
             p_aplati = apm_aplati[1];
             m_aplati = apm_aplati[2];
             free(apm_aplati);
-            angle = PI*angle/180;
+            angle = PI*angle/180; // Conversion degrés vers radians
             angle_aplati = PI*angle_aplati/180;
-            angle_utilise = angle_aplati;
+            angle_utilise = angle_aplati; // Utiliser l'angle après aplatissement
             
             if (mode_P) {
-                T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // en secondes
+                T = 1.0f / (P * (pourcentage_Vmax * Vmax / 100.0f)); // Calcul dynamique de T en mode proportionnel en secondes
             }
-            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle_utilise, T); // en rpm
+            int* vitesses = get_vitesse_mot(Vmax * pourcentage_Vmax / 100.0, angle_utilise, T); // Calcul des vitesses des moteurs en rpm
             v_mot_droit = vitesses[0];
             v_mot_gauche = vitesses[1];
             printf("Angle: %.2f rad, V droite: %d rpm, V gauche: %d rpm\n",
                 angle_utilise, v_mot_droit, v_mot_gauche);
             
             if (!pause) {
+                // Appliquer les vitesses aux moteurs
                 motor_define_direction_from_pwm(v_mot_droit, v_mot_gauche);
                 motor_set_rpm(&moteur0, v_mot_droit*signe(v_mot_droit));
-                motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)); // *signe pour avoir la valeur absolue
+                motor_set_rpm(&moteur1, v_mot_gauche*signe(v_mot_gauche)); // *signe pour valeur absolue
             }
             else {
+                // Robot en pause : arrêter les moteurs
                 motor_set_rpm(&moteur0, 0.0);
                 motor_set_rpm(&moteur1, 0.0);
             }
@@ -337,6 +349,7 @@ void core0_entry()
         tight_loop_contents();
     }
 
+    // Nettoyage en fin de programme
     // tcp_server_stop(state);
     pico_set_led(false);
     cyw43_arch_deinit();
@@ -349,14 +362,12 @@ void core0_entry()
 // BUFF_SIZE défini dans tcp_server.h
 
 int main() {
+    // Fonction principale : initialisation et lancement des cœurs
     stdio_init_all();
     sleep_ms(500);
-    coded_image = (uint8_t*)malloc(1024*sizeof(uint8_t)); // Taille max possible
-    mutex_init(&multicore_lock);
-    multicore_launch_core1(core1_entry);
-    core0_entry();
+    coded_image = (uint8_t*)malloc(1024*sizeof(uint8_t)); // Allocation pour l'image codée (taille max possible)
+    mutex_init(&multicore_lock); // Initialisation du mutex pour synchronisation
+    multicore_launch_core1(core1_entry); // Lancer le cœur 1
+    core0_entry(); // Exécuter le cœur 0 (boucle infinie)
     return 0;
 }
-
-
-
