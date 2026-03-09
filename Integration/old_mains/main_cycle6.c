@@ -7,10 +7,10 @@
 
 // Définition des constantes pour la vitesse maximale et la fréquence
 #define Vmax MAX_RPM*R*(2*PI)/60.0f // conversion rpm -> m/s. Environ 1 m/s
+#define F 12.5 // Hz
 
-static uint8_t *frame_buffer, *bw_outbuf; // Buffers pour l'image brute et binarisée
-uint8_t *coded_image; // Image codée pour transmission
-uint16_t len_coded_image; // Longueur de l'image codée
+// Mode d'envoi optimisé pour réduire la bande passante
+#define OPTIMIZED_SEND false
 
 // Variables globales pour les paramètres du robot
 short pourcentage_Vmax = 20; // en pourcentage de Vmax (environ vitesse en cm/s)
@@ -37,6 +37,41 @@ double m_aplati;
 double angle_aplati;
 double angle_utilise; // Angle effectivement utilisé pour le contrôle
 uint32_t debut = 0; // Pour gérer le timer de recherche de ligne
+
+// Buffers pour les images et synchronisation multicœur
+static uint8_t* outbuf1;
+static uint8_t* outbuf2;
+static bool toggle_buf = false; // Alternance des buffers entre cœurs
+static uint8_t *frame_buffer, *bw_outbuf; // Buffers pour l'image brute et binarisée
+uint8_t *coded_image; // Image codée pour transmission
+uint16_t len_coded_image; // Longueur de l'image codée
+
+
+// échange les buffers d'image entre les deux cœurs   
+static uint8_t** get_outbuf_from_core(bool core) {
+    uint8_t** outbuf = (toggle_buf == core) ? &outbuf1 : &outbuf2;
+    return outbuf;
+}
+// gestion de la synchronisation entre les deux cœurs
+static bool core_0_ready = false;
+static bool core_1_ready = false;
+static void core_ready_to_swap(bool core, bool ready) {
+    switch (core) {
+        case 0:
+            core_0_ready = ready;
+            break;
+        case 1:
+            core_1_ready = ready;
+            break;
+    }
+    if (core_0_ready && core_1_ready)
+    {
+        printf("Core 0 using buffer %d, Core 1 using buffer %d\n", toggle_buf ? 0 : 1, toggle_buf ? 1 : 0);
+        toggle_buf = !toggle_buf;
+        core_0_ready = false;
+        core_1_ready = false;
+    }
+}
 
 void interpretCommand(TCP_SERVER_T *state, const char* command) {
     // Fonction pour interpréter les commandes reçues via TCP et ajuster les paramètres du robot
@@ -97,7 +132,7 @@ void interpretCommand(TCP_SERVER_T *state, const char* command) {
     else if (command[0] == 'R' && estNombreEntier(command + 1))
     {
         pourcentage_V_marche_arriere = (short)atoi(command + 1); // Pourcentage de la vitesse maximale pour la marche arrière
-        snprintf(general_msg, LEN_GENERAL_MSG, "R set to %d%%", pourcentage_V_marche_arriere);
+        snprintf(general_msg, LEN_GENERAL_MSG, "vitesse_marche_arriere set to %d%%", pourcentage_V_marche_arriere);
     }
     else
     {
@@ -141,38 +176,49 @@ void core1_entry() {
             }
             
             err_t err;
-        
-            // Mode optimisé : coder l'image et envoyer tout en un paquet
-            printf("Preparing to send all-in-one packet...\n");
-            sleep_ms(20);
-            // snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
-            // if (general_msg[0] == '\0') {
-            //     snprintf(general_msg, LEN_GENERAL_MSG, "%u", cpt_envoi);
-            // }
-            // seuillage_pour_transmission(*get_outbuf_from_core(1),
-            //                             coded_image,
-            //                             MAX_WIDTH, MAX_HEIGHT, &len_coded_image, SEUIL); // RLE
-            byte_to_bit_for_transmission(*get_outbuf_from_core(1),
-                                        coded_image,
-                                        MAX_WIDTH, MAX_HEIGHT, SEUIL);
-            
-            // printf("Coded image length: %d bytes\n", len_coded_image);
-            printf("Sending all-in-one packet...\n");
-            err = tcp_server_send_all_in_one(state,
-                                        general_msg,
-                                        v_mot_droit,
-                                        v_mot_gauche,
-                                        p,
-                                        m,
-                                        angle,
-                                        p_aplati,
-                                        m_aplati,
-                                        angle_aplati,
-                                        coded_image,
-                                        600); //len_coded_image);
-            snprintf(general_msg, LEN_GENERAL_MSG, ""); // Reset general_msg
-            general_msg[0] = '\0'; // Reset general_msg
-            
+            if (!OPTIMIZED_SEND) {
+                // Mode d'envoi non optimisé : envoyer séparément les données
+                sleep_ms(20);
+                // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_droit);
+                // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_0);
+                // snprintf(str_v_mot, sizeof(str_v_mot), "%d", v_mot_gauche);
+                // tcp_server_send(state, str_v_mot, PACKET_TYPE_MOT_1);
+                // snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
+                // tcp_server_send(state, str_v_mot, PACKET_TYPE_GENERAL);
+
+                err = tcp_send_large_img(state, *get_outbuf_from_core(1), MAX_WIDTH*MAX_HEIGHT);
+            } else {
+                // Mode optimisé : coder l'image et envoyer tout en un paquet
+                printf("Preparing to send all-in-one packet...\n");
+                sleep_ms(20);
+                // snprintf(str_v_mot, sizeof(str_v_mot), "%.6f", 180*angle/PI);
+                // if (general_msg[0] == '\0') {
+                //     snprintf(general_msg, LEN_GENERAL_MSG, "%u", cpt_envoi);
+                // }
+                // seuillage_pour_transmission(*get_outbuf_from_core(1),
+                //                             coded_image,
+                //                             MAX_WIDTH, MAX_HEIGHT, &len_coded_image, SEUIL); // RLE
+                byte_to_bit_for_transmission(*get_outbuf_from_core(1),
+                                            coded_image,
+                                            MAX_WIDTH, MAX_HEIGHT, SEUIL);
+                
+                // printf("Coded image length: %d bytes\n", len_coded_image);
+                printf("Sending all-in-one packet...\n");
+                err = tcp_server_send_all_in_one(state,
+                                            general_msg,
+                                            v_mot_droit,
+                                            v_mot_gauche,
+                                            p,
+                                            m,
+                                            angle,
+                                            p_aplati,
+                                            m_aplati,
+                                            angle_aplati,
+                                            coded_image,
+                                            600); //len_coded_image);
+                snprintf(general_msg, LEN_GENERAL_MSG, ""); // Reset general_msg
+                general_msg[0] = '\0'; // Reset general_msg
+            }
             
             printf("TCP send time (us): %llu\n", time_us_64() - t_us_core_1_beginning_loop);
             if (err != ERR_OK) {
@@ -242,11 +288,12 @@ void core0_entry()
         // Extraire Y seulement (pour format YUV)
         // for (int px = 0; px < width * height; px++)
         //     (*get_outbuf_from_core(0))[px] = frame_buffer[px * 2]; 
+        if (!OPTIMIZED_SEND) *get_outbuf_from_core(0) = frame_buffer; // Utiliser l'image brute si non optimisé
         
         // Traitement d'image : binarisation
         int seuillage_out = seuillage(frame_buffer, bw_outbuf,
                                       width, height, SEUIL);
-        *get_outbuf_from_core(0) = bw_outbuf; // Utiliser l'image binarisée pour envoi optimisé
+        if (OPTIMIZED_SEND) *get_outbuf_from_core(0) = bw_outbuf; // Utiliser l'image binarisée pour envoi optimisé
         core_ready_to_swap(0, true); // Prêt pour l'échange de buffers
 
         if (ligne_detectee(bw_outbuf, width, height) == 0 && !pause)

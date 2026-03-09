@@ -19,7 +19,7 @@ import pygetwindow as gw
 
 all_ip = ["192.168.31.233", "172.20.10.2", "192.168.1.114", "192.168.1.2"]
 
-PICO_IP = all_ip[2]
+PICO_IP = all_ip[0]
 PICO_PORT = 4242
 
 WIDTH = 80
@@ -44,6 +44,7 @@ m = 0.0
 angle = 0.0
 p_aplati = 0.0
 m_aplati = 0.0
+angle_aplati = 0.0
 
 # ===================== TCP thread ======================
 # Désactiver les logs de Werkzeug

@@ -22,3 +22,4 @@
 
 #include "divers/include/divers.h"
 
+#include "multicore/include/multicore.h"

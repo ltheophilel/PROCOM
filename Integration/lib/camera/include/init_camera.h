@@ -9,7 +9,7 @@
 #include "pico/stdlib.h"
 #include "camera.h"
 
-#define OLD_PCB false
+#define OLD_PCB true
 
  // BRANCHEMENTS :
 // ! GP pins
