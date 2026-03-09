@@ -31,3 +31,8 @@ int signe(double x) {
         return -1;
     }
 }
+
+double abs_double(double x) {
+    // Fonction pour obtenir la valeur absolue d'un nombre
+    return (x < 0) ? -x : x;
+}

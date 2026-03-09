@@ -5,6 +5,7 @@
 #define H 0.30 // distance entre la caméra et l'axe de rotation du robot, en m
 #define PI 3.14159265358979323846
 #define MAX_RPM 290.0f               // Vitesse maximale attendue (pour la table de lookup)
+#define Vmax MAX_RPM*R*(2*PI)/60.0f // conversion rpm -> m/s. Environ 1 m/s
 
 #define CAMERA_SUR_AXE_ROUES true // true : la caméra est sur l'axe des roues, false : la caméra est en avant de l'axe des roues (distance H)
 

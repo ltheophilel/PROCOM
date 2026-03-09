@@ -10,4 +10,5 @@
 char* trim_whitespace_divers(char *line);
 int estNombreEntier(const char *s);
 int signe(double x);
+double abs_double(double x);
 #endif

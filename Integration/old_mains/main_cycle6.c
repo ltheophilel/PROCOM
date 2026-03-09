@@ -47,7 +47,7 @@ uint8_t *coded_image; // Image codée pour transmission
 uint16_t len_coded_image; // Longueur de l'image codée
 
 
-// échange les buffers d'image entre les deux cœurs   
+// Récupère le buffer à envoyer en fonction du coeur (0 ou 1)
 static uint8_t** get_outbuf_from_core(bool core) {
     uint8_t** outbuf = (toggle_buf == core) ? &outbuf1 : &outbuf2;
     return outbuf;
