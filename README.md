@@ -34,7 +34,7 @@ make -j
 ├── **IHM** : développement de l'IHM  
 ├── **Integration** : Dossier principal contenant le code complet  
 ├── **Moteurs** : développement du pilotage par PWM  
-├── **Support** : développement du support caméra (impression 3D)  
+├── **Modeles** : développement du support caméra (impression 3D)  
 └── **TraitementImage** : développement de la capture et du traitement d'image  
 
 
