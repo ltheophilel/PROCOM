@@ -36,7 +36,6 @@ pico_sdk_init()
 add_subdirectory(lib/led)
 add_subdirectory(lib/oled)
 add_subdirectory(lib/wifi)
-add_subdirectory(lib/serial)
 add_subdirectory(lib/Moteur)
 add_subdirectory(lib/camera)
 add_subdirectory(lib/traitement_image)
@@ -75,7 +74,6 @@ target_link_libraries(DEMO
         led_lib
         oled_lib
         wifi_lib
-        serial_lib
         moteur_lib
         camera_lib
         traitement_lib

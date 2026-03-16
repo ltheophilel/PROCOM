@@ -176,8 +176,7 @@ void core1_entry() {
 }
 
 // Entrée du cœur 0 : gestion de la caméra, traitement d'image et contrôle des moteurs
-void core0_entry()
-{
+void core0_entry() {
     // Initialisation moteurs
     printf("Initialisation des moteurs\n");
     init_all_motors_and_encoders();

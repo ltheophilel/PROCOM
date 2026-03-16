@@ -8,7 +8,7 @@
 #include "wifi/include/wifi_connect.h"
 #include "wifi/include/lwipopts_examples_common.h"
 
-#include "serial/include/serial.h"
+// #include "serial/include/serial.h"
 
 #include "Moteur/include/moteur.h"
 #include "Moteur/include/cinematic.h"
