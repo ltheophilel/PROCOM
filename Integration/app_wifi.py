@@ -16,10 +16,12 @@ import select
 import pygetwindow as gw
 
 
+# Liste des adresses IP possibles pour le Pico W (à adapter selon votre réseau)
+# L'adresse IP à utiliser est celle affichée sur l'OLED du Pico W après son démarrage et sa connexion au Wi-Fi
+# Cependant, 0.0.0.0 signifie un échec de la connexion 
+all_ip = ["192.168.31.233", "172.20.10.2"]
 
-all_ip = ["192.168.31.233", "172.20.10.2", "192.168.1.114", "192.168.1.2"]
-
-PICO_IP = all_ip[0]
+PICO_IP = all_ip[0] # Remplacez par l'adresse IP de votre Pico W
 PICO_PORT = 4242
 
 WIDTH = 80
